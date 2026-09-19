@@ -243,21 +243,32 @@ function header() {
         .join("")}
     </nav>`;
 }
+// Shared scene photographs illustrate the skill, never the member's identity.
+const CATEGORY_PHOTOS = {
+  编程: ["coding", "两位伙伴一起练习编程"],
+  设计: ["design", "通过纸上草图讨论网页设计"],
+  办公: ["office", "一起整理表格和分析数据"],
+  摄影: ["photography", "在窗边练习拍摄日常静物"],
+  语言: ["language", "用笔记和卡片练习日常对话"],
+  音乐: ["music", "对照和弦图练习木吉他"],
+};
 function card(p, why = false) {
   const sk = SKILLS[p.teach[0]],
     m = match(state.me, p),
     saved = state.favorites.includes(p.id);
+  const [photo, photoDescription] = CATEGORY_PHOTOS[sk.category];
   return /* HTML */ `<article class="skill-card">
     <a
       class="skill-cover"
       href="#/person/${p.id}"
       style="--cover:${sk.color};--ink:${sk.ink}"
       aria-label="查看${escape(p.name)}的${escape(p.teach[0])}技能"
-      ><span class="cover-copy"
+      ><img class="cover-photo" src="./assets/photos/${photo}.webp" alt="AI生成场景：${photoDescription}" width="1536" height="1024" loading="lazy" decoding="async" />
+      <span class="photo-label">AI场景</span>
+      <span class="cover-copy"
         ><small>${sk.category}</small
         ><strong>${escape(p.teach.join(" / "))}</strong
-        ></span
-      ><span class="cover-art">${icon(sk.icon)}</span></a
+        ></span></a
     ><button
       class="favorite ${saved ? "saved" : ""}"
       data-action="favorite"
@@ -321,7 +332,7 @@ function discover() {
   return /* HTML */ `<section class="discovery-intro">
       <div class="intro-heading"><h1>用你会的，换你想学的。</h1><a class="btn dark" href="#/matches">${state.me.active ? `查看${matches(state.me, PEOPLE).length}位匹配` : "查看匹配"}${icon("arrow")}</a></div>
       <div class="intro-skills"><span>我能教<strong>${escape(state.me.teach.join("、"))}</strong></span>${icon("match")}<span>我想学<strong>${escape(state.me.want.join("、"))}</strong></span><a class="text-btn" href="#/publish" aria-label="编辑我的供需">编辑${icon("edit")}</a></div>
-      <details class="intro-help"><summary>如何体验一次技能交换</summary><div class="guide-steps"><div><strong>1.看看谁和你互补</strong><p>默认身份小麦能教摄影、想学Python。在我的匹配中，林予安与你技能互补且有共同时间。</p><a class="text-btn" href="#/person/lin">查看这位伙伴${icon("arrow")}</a></div><div><strong>2.约定两节课</strong><p>查看课程安排，发送邀请后点击模拟对方接受。两节课分别记录你教什么、你学什么。</p></div><div><strong>3.记录学到的东西</strong><p>分别模拟完成两节课，写下收获并评价。也可以修改自己的供需，看看匹配结果如何变化。</p></div></div><p class="guide-note">人物、经历和评价均为示例。操作只保存在当前浏览器，不会联系真实用户。</p></details>
+      <details class="intro-help"><summary>如何体验一次技能交换</summary><div class="guide-steps"><div><strong>1.看看谁和你互补</strong><p>默认身份小麦能教摄影、想学Python。在我的匹配中，林予安与你技能互补且有共同时间。</p><a class="text-btn" href="#/person/lin">查看这位伙伴${icon("arrow")}</a></div><div><strong>2.约定两节课</strong><p>查看课程安排，发送邀请后点击模拟对方接受。两节课分别记录你教什么、你学什么。</p></div><div><strong>3.记录学到的东西</strong><p>分别模拟完成两节课，写下收获并评价。也可以修改自己的供需，看看匹配结果如何变化。</p></div></div><p class="guide-note">人物、经历和评价均为示例，卡片场景图由AI生成。操作只保存在当前浏览器，不会联系真实用户。</p></details>
     </section>
     <section aria-labelledby="discover-title">
       <div class="section-heading">
