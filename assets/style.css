@@ -2203,14 +2203,14 @@ dialog .full {
   .welcome-row {
     grid-template-columns: 1fr;
     gap: 13px;
-    margin-bottom: 26px;
+    margin-bottom: 16px;
   }
   .welcome {
     padding: 23px 24px;
     min-height: 239px;
   }
   .welcome h1 {
-    font-size: 33px;
+    font-size: 30px;
     max-width: 270px;
   }
   .welcome-label {
@@ -2868,7 +2868,8 @@ fieldset:has([aria-invalid="true"]) {
     display: none;
   }
   .welcome {
-    min-height: 222px;
+    min-height: 0;
+    padding: 20px 22px;
   }
   .snapshot-pair > div {
     display: block;
@@ -2891,4 +2892,104 @@ fieldset:has([aria-invalid="true"]) {
     min-width: 36px;
     min-height: 36px;
   }
+}
+
+/* Learning details and optional guidance keep the demo concrete without crowding discovery. */
+.demo-guide {
+  margin: 0 0 28px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--white);
+}
+.demo-guide summary,
+.preparation summary {
+  cursor: pointer;
+  font-weight: 600;
+  line-height: 1.6;
+}
+.demo-guide summary {
+  padding: 15px 18px;
+}
+.demo-guide summary > .icon {
+  width: 17px;
+  height: 17px;
+  margin: 0 7px -3px 0;
+}
+.demo-guide summary > span {
+  float: right;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 400;
+}
+.guide-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  padding: 8px 20px 0;
+}
+.guide-steps p,
+.guide-note,
+.preparation p,
+.preparation li {
+  color: var(--muted);
+  line-height: 1.85;
+  font-size: 13px;
+}
+.guide-note {
+  border-top: 1px solid var(--line);
+  margin: 16px 20px 0;
+  padding: 12px 0;
+}
+.agenda {
+  list-style: none;
+  padding: 0;
+  margin: 22px 0;
+}
+.agenda li {
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr);
+  gap: 18px;
+  padding: 17px 0;
+  border-bottom: 1px solid var(--line);
+}
+.agenda li:first-child { padding-top: 0; }
+.agenda li:last-child { border-bottom: 0; padding-bottom: 0; }
+.agenda-time {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  align-self: start;
+  height: 56px;
+  background: var(--yellow-soft);
+  border-radius: 10px;
+  font-size: 21px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.agenda-time small { font-size: 10px; font-weight: 400; }
+.agenda h3 { margin: 0 0 5px; font-size: 15px; }
+.agenda p { margin: 0; color: var(--muted); line-height: 1.8; }
+.lesson-deliverable { padding: 16px; background: var(--bg); border-radius: 10px; }
+.lesson-deliverable p { margin: 9px 0 0; line-height: 1.8; }
+.preparation { border-top: 1px solid var(--line); margin-top: 20px; padding-top: 16px; }
+.preparation h3 { margin: 18px 0 8px; font-size: 14px; }
+.preparation ul { padding-left: 20px; }
+.preparation li + li { margin-top: 7px; }
+.invitation-existing { align-items: flex-start; }
+.invitation-existing p { margin: 6px 0; }
+.invitation-existing .text-btn { display: flex; margin-top: 6px; }
+@media (max-width: 650px) {
+  .demo-guide { margin-bottom: 22px; }
+  .demo-guide summary { padding: 12px 14px; font-size: 12px; }
+  .demo-guide summary > span { display: none; }
+  .guide-steps { grid-template-columns: 1fr; gap: 16px; padding: 8px 16px 0; }
+  .guide-steps p { margin: 6px 0; }
+  .guide-note { margin: 12px 16px 0; font-size: 12px; }
+  .agenda li { grid-template-columns: 42px minmax(0, 1fr); gap: 13px; }
+  .agenda-time { height: 50px; font-size: 19px; }
+  .agenda h3 { font-size: 14px; }
+  .agenda p, .lesson-deliverable p { font-size: 13px; }
+  .lesson-plan .section-heading { align-items: flex-start; }
+  .lesson-plan .section-heading .sample { white-space: nowrap; }
 }
