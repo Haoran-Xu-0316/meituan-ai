@@ -30,6 +30,16 @@ export function loadState(storage) {
       throw Error();
     validatePost(s.me);
     validateSavedState(s);
+    if (s.draft) {
+      const restored = restoreDraft(s.draft, s.me);
+      if (!restored) {
+        s.draft = null;
+        s.draftStep = 1;
+        return { state: s, warning: "未完成的草稿无法读取，已清除草稿。已发布资料、收藏和交换记录均保留。" };
+      }
+      s.draft = restored;
+      s.draftStep = [1, 2, 3].includes(s.draftStep) ? s.draftStep : 1;
+    }
     return { state: s };
   } catch {
     return {
@@ -37,6 +47,24 @@ export function loadState(storage) {
       warning: "本地数据不可读取，已恢复演示。新的操作将重新保存。",
     };
   }
+}
+// Drafts can be incomplete; validate their shape without requiring a publishable post.
+function restoreDraft(raw, me) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const draft = structuredClone(me);
+  for (const [key, options] of [["teach", Object.keys(SKILLS)], ["want", Object.keys(SKILLS)], ["slots", SLOT_OPTIONS], ["formats", FORMATS]]) {
+    if (!Array.isArray(raw[key]) || raw[key].some((value) => !options.includes(value))) return null;
+    draft[key] = [...new Set(raw[key])];
+  }
+  for (const key of ["goal", "learnGoal", "experience"]) {
+    if (typeof raw[key] !== "string" || raw[key].length > 200) return null;
+    draft[key] = raw[key];
+  }
+  if (!LEVELS.includes(raw.level) || !LEVELS.includes(raw.audience)) return null;
+  draft.level = raw.level;
+  draft.audience = raw.audience;
+  draft.proficiency = ["熟悉", "熟练"].includes(raw.proficiency) ? raw.proficiency : "熟练";
+  return draft;
 }
 function validateSavedState(s) {
   const ids = new Set(PEOPLE.map((p) => p.id));
@@ -182,6 +210,16 @@ export function upcoming(slots, now = new Date()) {
 }
 export const overlaps = (a, b) =>
   Math.abs(new Date(a) - new Date(b)) < 45 * 60000;
+const isOpenExchange = (e) => !["cancelled", "declined", "completed"].includes(e.status);
+export function availableLessonTimes(state, slots, now = new Date()) {
+  const reserved = state.exchanges.filter(isOpenExchange).flatMap((e) => e.lessons.filter((l) => !l.done));
+  const selected = [];
+  for (const at of upcoming(slots, now)) {
+    if (reserved.some((l) => overlaps(at, l.at)) || selected.some((other) => overlaps(at, other))) continue;
+    selected.push(at);
+  }
+  return selected;
+}
 export function createExchange(state, p, input, now = new Date()) {
   if (!state.me.active || !state.me.published || !p.active)
     throw Error("请先发布或重新上架自己的技能。");
@@ -215,6 +253,7 @@ export function createExchange(state, p, input, now = new Date()) {
   if (times.some((t) => new Date(t) > new Date(now.getTime() + 14 * 86400000)))
     throw Error("请选择未来14天内的课程时间。");
   if (overlaps(times[0], times[1])) throw Error("两节45分钟课程不能重叠。");
+  if (new Date(times[1]) < new Date(times[0])) throw Error("第二节课应安排在第一节课之后。");
   if (
     state.exchanges
       .filter((e) => !["cancelled", "declined", "completed"].includes(e.status))
