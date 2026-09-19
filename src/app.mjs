@@ -243,32 +243,35 @@ function header() {
         .join("")}
     </nav>`;
 }
-// Shared scene photographs illustrate the skill, never the member's identity.
-const CATEGORY_PHOTOS = {
-  编程: ["coding", "两位伙伴一起练习编程"],
-  设计: ["design", "通过纸上草图讨论网页设计"],
-  办公: ["office", "一起整理表格和分析数据"],
-  摄影: ["photography", "在窗边练习拍摄日常静物"],
-  语言: ["language", "用笔记和卡片练习日常对话"],
-  音乐: ["music", "对照和弦图练习木吉他"],
+// Each fictional partner has a distinct lesson scene, not a verified profile photograph.
+const PARTNER_COVERS = {
+  lin: ["coding", "一起练习数据清洗脚本", "50% 46%"],
+  zhou: ["design", "从纸上草图搭建界面", "60% 55%"],
+  chen: ["excel-report", "月度报表与分类汇总练习", "50% 50%"],
+  xu: ["english-interview", "在校园里练习英文自我介绍", "50% 45%"],
+  lu: ["street-photography", "用手机观察街头光线与构图", "50% 48%"],
+  jiang: ["music", "放慢速度练习吉他和弦", "60% 42%"],
+  song: ["personal-webpage", "个人网页在电脑和手机上的布局", "50% 48%"],
+  he: ["video-editing", "在时间线上整理短片镜头", "50% 45%"],
+  tang: ["python-tool", "用函数整理文件名清单", "50% 50%"],
+  shen: ["japanese-travel", "在餐馆用日语练习点餐", "50% 50%"],
+  gu: ["music-theory", "借助琴键理解节拍与音程", "50% 55%"],
+  wen: ["javascript-todo", "给待办列表添加点击交互", "50% 50%"],
 };
 function card(p, why = false) {
   const sk = SKILLS[p.teach[0]],
     m = match(state.me, p),
     saved = state.favorites.includes(p.id);
-  const [photo, photoDescription] = CATEGORY_PHOTOS[sk.category];
+  const [photo, photoDescription, photoPosition] = PARTNER_COVERS[p.id];
   return /* HTML */ `<article class="skill-card">
     <a
       class="skill-cover"
       href="#/person/${p.id}"
-      style="--cover:${sk.color};--ink:${sk.ink}"
+      style="--cover:${sk.color};--photo-position:${photoPosition}"
       aria-label="查看${escape(p.name)}的${escape(p.teach[0])}技能"
       ><img class="cover-photo" src="./assets/photos/${photo}.webp" alt="AI生成场景：${photoDescription}" width="1536" height="1024" loading="lazy" decoding="async" />
       <span class="photo-label">AI场景</span>
-      <span class="cover-copy"
-        ><small>${sk.category}</small
-        ><strong>${escape(p.teach.join(" / "))}</strong
-        ></span></a
+      <span class="cover-copy"><strong>${escape(p.teach.join(" / "))}</strong></span></a
     ><button
       class="favorite ${saved ? "saved" : ""}"
       data-action="favorite"
@@ -279,16 +282,13 @@ function card(p, why = false) {
       ${icon("heart")}
     </button>
     <div class="card-body">
+      <h3 class="card-title"><a href="#/person/${p.id}">${escape(p.goal)}</a></h3>
       <div class="person-line">
         ${avatar(p)}
         <div>
           <strong>${escape(p.name)}</strong><span>${escape(p.job)}</span>
         </div>
         <span class="sample">示例</span>
-      </div>
-      <div class="skill-row">
-        <span class="role teach">能教</span>
-        <p>${escape(p.goal)}</p>
       </div>
       <div class="skill-row wanted">
         <span class="role want">想学</span>
