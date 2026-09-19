@@ -1,3 +1,4 @@
+import { WORKSHOPS, workshopText } from "../data/workshops.mjs";
 import {
   PEOPLE,
   SKILLS,
@@ -208,12 +209,6 @@ function header() {
           )
           .join("")}
       </nav>
-      <a class="sidebar-user" href="#/profile"
-        >${avatar(state.me)}<span
-          ><strong>${escape(state.me.name)}</strong
-          ><small>我的资料</small></span
-        >${icon("chevron")}</a
-      >
     </aside>
     <header class="topbar">
       <a class="mobile-brand" href="#/discover">${icon("match")}SkillPal</a>
@@ -473,6 +468,31 @@ function matching() {
       )}匹配依据来自双方填写的资料，不代表平台认证。人物和经历均为演示数据。
     </div>`;
 }
+function materialBlock(block) {
+  const heading = `<h4>${escape(block.title)}</h4>`;
+  if (block.type === "table") {
+    return `${heading}<div class="material-table" tabindex="0" role="region" aria-label="${escape(block.title)}"><table><thead><tr>${block.columns.map((column) => `<th scope="col">${escape(column)}</th>`).join("")}</tr></thead><tbody>${block.rows.map((row) => `<tr>${row.map((value) => `<td>${escape(value)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+  }
+  if (block.type === "code") {
+    return `<details class="material-code"><summary>${escape(block.title)}</summary><pre tabindex="0"><code>${escape(block.content)}</code></pre></details>`;
+  }
+  return `${heading}<p class="material-text">${escape(block.content)}</p>`;
+}
+function materialDownload(name, content, label = name) {
+  const payload = name.endsWith(".csv") ? "\uFEFF" + content : content;
+  return `<a class="material-download" href="data:text/plain;charset=utf-8,${encodeURIComponent(payload)}" download="${escape(name)}">${icon("arrow")}${escape(label)}</a>`;
+}
+function workshop(p) {
+  const content = WORKSHOPS[p.id];
+  return `<details class="detail-section workshop"><summary>实操样例与材料<span>含参考答案</span></summary>
+    <h3 class="workshop-title">${escape(content.title)}</h3><p>${escape(content.brief)}</p>
+    <div class="material-downloads">${materialDownload(p.id + "-practice.txt", workshopText(content), "下载完整练习讲义")}${(content.files || []).map((file) => materialDownload(file.name, file.content)).join("")}</div>
+    ${content.blocks.map(materialBlock).join("")}
+    <section class="material-result">${materialBlock(content.expected)}</section>
+    <section class="material-challenge"><h4>自己试一试</h4><p>${escape(content.challenge)}</p><details><summary>查看参考答案</summary><p>${escape(content.answer)}</p></details></section>
+    ${content.source ? `<p class="material-source">参考资料：<a href="${escape(content.source[1])}" target="_blank" rel="noopener noreferrer">${escape(content.source[0])}</a></p>` : ""}
+  </details>`;
+}
 function lessonPlan(p) {
   const lesson = p.lesson;
   return `<details class="detail-section"><summary>课程安排与练习<span>45分钟</span></summary>
@@ -502,6 +522,7 @@ function detail(p) {
     </section>
     <div class="detail-layout partner-layout">
       <section class="panel course-summary">
+        ${workshop(p)}
         ${lessonPlan(p)}
         <details class="detail-section"><summary>了解${escape(p.name)}</summary><p>${escape(p.bio)}</p><h3>分享经验</h3><p>${escape(p.experience)}。</p></details>
         <details class="detail-section"><summary>学习反馈<span>示例与本地评价</span></summary><div class="review-sample"><p>${escape(p.lesson.review)}</p><small>示例评价</small></div>${state.exchanges.filter((e) => e.personId === p.id && e.review).map((e) => `<div class="review-sample"><span class="stars">${"★".repeat(e.review.rating)}</span><p>${escape(e.review.text)}</p><small>我的本地演示评价</small></div>`).join("")}</details>
