@@ -17,7 +17,7 @@ import {
   createExchange,
   transition,
   STATUS,
-  upcoming,
+  availableLessonTimes,
   beijingDate,
 } from "./model.mjs";
 const paths = {
@@ -96,7 +96,7 @@ let loaded = loadState(storage),
   state = loaded.state,
   filter = { q: "", category: "全部", format: "", slot: "", mutual: false },
   exchangeTab = "全部",
-  step = 1,
+  step = state.draft ? state.draftStep || 1 : 1,
   draft = state.draft || null;
 let toastTimer;
 const toast = (msg) => {
@@ -114,6 +114,8 @@ const persist = () => {
   return !storageFailed;
 };
 const route = () => location.hash.slice(1) || "/discover";
+let previousRoute = route();
+const personReturnRoutes = new Map();
 const go = (path) => {
   if (route() === path) render();
   else location.hash = path;
@@ -229,7 +231,7 @@ function header() {
       </form>
       <div class="top-actions">
         <span class="demo-label">交互演示</span
-        ><a class="btn primary" href="#/publish"
+        ><a class="btn primary" href="#/publish" aria-label="发布技能"
           >${icon("plus")}<span>发布技能</span></a
         >
       </div>
@@ -370,6 +372,7 @@ function discover() {
         >
       </div>
     </section>
+    <details class="demo-guide"><summary>${icon("info")}第一次体验？用摄影换一节Python课<span>查看步骤</span></summary><div class="guide-steps"><div><strong>1.看看谁和你互补</strong><p>默认身份小麦能教摄影、想学Python。在我的匹配中，林予安与你技能互补且有共同时间。</p><a class="text-btn" href="#/person/lin">查看这位伙伴${icon("arrow")}</a></div><div><strong>2.约定两节课</strong><p>查看课程安排，发送邀请后点击模拟对方接受。两节课分别记录你教什么、你学什么。</p></div><div><strong>3.记录学到的东西</strong><p>分别模拟完成两节课，写下收获并评价。也可以修改自己的供需，看看匹配结果如何变化。</p></div></div><p class="guide-note">人物、经历和评价均为示例。操作只保存在当前浏览器，不会联系真实用户。</p></details>
     <section aria-labelledby="discover-title">
       <div class="section-heading">
         <div>
@@ -518,10 +521,17 @@ function matching() {
       )}匹配依据来自双方填写的资料，不代表平台认证。人物和经历均为演示数据。
     </div>`;
 }
+function lessonPlan(p) {
+  const lesson = p.lesson;
+  return `<section class="panel lesson-plan"><div class="section-heading compact"><div><span class="eyebrow">从知道，到自己做出来</span><h2>这45分钟怎么学</h2></div><span class="sample">示例课程</span></div>
+    <ol class="agenda">${lesson.agenda.map(([minutes, title, text]) => `<li><span class="agenda-time">${minutes}<small>分钟</small></span><div><h3>${escape(title)}</h3><p>${escape(text)}</p></div></li>`).join("")}</ol>
+    <div class="lesson-deliverable"><span class="role teach">带走的成果</span><p>${escape(lesson.takeaway)}</p></div>
+    <details class="preparation"><summary>课前准备与课后练习</summary><h3>开始前准备好</h3><ul>${lesson.prepare.map((item) => `<li>${escape(item)}</li>`).join("")}</ul><h3>课后再试一次</h3><p>${escape(lesson.practice)}</p></details></section>`;
+}
 function detail(p) {
   const sk = SKILLS[p.teach[0]],
     m = match(state.me, p);
-  return `${back()}<section class="profile-hero" style="--cover:${sk.color};--ink:${sk.ink}"><div>${avatar(p, "xl")}<div><span class="eyebrow">${escape(p.job)} · 演示伙伴</span><h1>${escape(p.name)}</h1><p>${escape(p.bio)}</p></div></div><button class="btn white" data-action="favorite" data-id="${p.id}">${icon("heart")}${state.favorites.includes(p.id) ? "已收藏" : "收藏伙伴"}</button></section><div class="detail-layout"><div><section class="panel"><div class="panel-title"><span class="role teach">TA能教</span><h2>${escape(p.teach.join("、"))}</h2></div><p class="lead">${escape(p.goal)}</p><div class="facts"><div><span>适合基础</span><strong>${p.audience}</strong></div><div><span>单节时长</span><strong>45分钟</strong></div><div><span>教学形式</span><strong>${p.formats.join(" / ")}</strong></div></div><h3>分享经验</h3><p>${escape(p.experience)}。以上为用户自述示例，不是平台认证。</p></section><section class="panel"><div class="panel-title"><span class="role want">TA想学</span><h2>${escape(p.want.join("、"))}</h2></div><p class="lead">${escape(p.learnGoal)}</p><p class="subtle">当前基础：${p.level}</p></section><section class="panel"><h2>可约时间</h2><p class="subtle">每周固定时段，北京时间</p><div class="tag-list">${p.slots.map((s) => pill(slotLabel(s), m.slots.includes(s) ? "yellow" : "")).join("")}</div></section><section class="panel"><h2>学习反馈 <span class="sample">示例评价</span></h2><div class="review-sample"><span class="stars">★★★★★</span><p>“把步骤拆得很清楚，最后真的做出了一个小成果。下次也想继续一起练习。”</p><small>示例学习者 · 用于展示评价结构</small></div>${state.exchanges
+  return `${back()}<section class="profile-hero" style="--cover:${sk.color};--ink:${sk.ink}"><div>${avatar(p, "xl")}<div><span class="eyebrow">${escape(p.job)} · 演示伙伴</span><h1>${escape(p.name)}</h1><p>${escape(p.bio)}</p></div></div><button class="btn white" data-action="favorite" data-id="${p.id}">${icon("heart")}${state.favorites.includes(p.id) ? "已收藏" : "收藏伙伴"}</button></section><div class="detail-layout"><div><section class="panel"><div class="panel-title"><span class="role teach">TA能教</span><h2>${escape(p.teach.join("、"))}</h2></div><p class="lead">${escape(p.goal)}</p><div class="facts"><div><span>适合基础</span><strong>${p.audience}</strong></div><div><span>单节时长</span><strong>45分钟</strong></div><div><span>教学形式</span><strong>${p.formats.join(" / ")}</strong></div></div><h3>分享经验</h3><p>${escape(p.experience)}。以上为用户自述示例，不是平台认证。</p></section>${lessonPlan(p)}<section class="panel"><div class="panel-title"><span class="role want">TA想学</span><h2>${escape(p.want.join("、"))}</h2></div><p class="lead">${escape(p.learnGoal)}</p><p class="subtle">当前基础：${p.level}</p></section><section class="panel"><h2>可约时间</h2><p class="subtle">每周固定时段，北京时间</p><div class="tag-list">${p.slots.map((s) => pill(slotLabel(s), m.slots.includes(s) ? "yellow" : "")).join("")}</div></section><section class="panel"><h2>学习反馈 <span class="sample">示例评价</span></h2><div class="review-sample"><span class="stars">★★★★★</span><p>${escape(p.lesson.review)}</p><small>示例学习者 · 用于展示评价结构</small></div>${state.exchanges
     .filter((e) => e.personId === p.id && e.review)
     .map(
       (e) =>
@@ -686,7 +696,8 @@ function invite(p) {
       "/publish",
       "调整技能",
     );
-  const preferred = upcoming(m.slots.length ? m.slots : state.me.slots);
+  const preferred = availableLessonTimes(state, m.slots.length ? m.slots : state.me.slots);
+  const existing = state.exchanges.filter((e) => e.personId === p.id && !["completed", "cancelled", "declined"].includes(e.status));
   const t1 = preferred[0] || "",
     t2 = preferred[1] || "";
   const local = (iso) =>
@@ -705,6 +716,7 @@ function invite(p) {
       <h1>邀请${escape(p.name)}交换技能</h1>
       <p>先约定成果，再留好彼此的时间。</p>
     </div>
+    ${existing.length ? `<div class="notice invitation-existing"><div><strong>你们已有进行中的交换</strong><p>相同技能无需重复邀请，可以继续之前的约定。</p>${existing.map((e) => `<a class="text-btn" href="#/exchange/${e.id}">查看${escape(e.teach)}与${escape(e.learn)}的交换${icon("arrow")}</a>`).join("")}</div></div>` : ""}
     <form id="invite-form" data-person="${p.id}" class="panel form-panel">
       <div class="form-error" role="alert"></div>
       <div class="form-two">
@@ -720,9 +732,10 @@ function invite(p) {
       <h2>安排两次45分钟的交流</h2>
       <p class="subtle">
         北京时间，选择未来14天内的时间。${m.slots.length
-          ? "已优先填入双方共同可用时段。"
-          : "暂无共同空闲，以下时间作为待协商提议。"}
+          ? "已优先填入双方共同可用时段，并避开已有交换。"
+          : "暂无共同空闲，以下空闲时间作为待协商提议。"}
       </p>
+      ${preferred.length < 2 ? '<p class="notice">常用时段中不足两次空闲，请手动选择其他时间，与伙伴协商后再约定。</p>' : ""}
       <div class="form-two">
         ${field(
           "第一节：我来教",
@@ -891,7 +904,7 @@ function exchangeDetail(e) {
     )
     .join(
       "",
-    )}</div><p class="fine-print align-left">课程与完成状态用于演示，不会创建真实会议或出勤记录。</p></section>${
+    )}</div><details class="preparation"><summary>上课前可以准备什么</summary><ul>${p.lesson.prepare.map((item) => `<li>${escape(item)}</li>`).join("")}</ul><p>我来教的部分：准备一份围绕“${escape(e.lessons[0].goal)}”的示例，先确认伙伴的基础。</p><a class="text-btn" href="#/person/${p.id}">查看伙伴的完整教学安排${icon("arrow")}</a></details><p class="fine-print align-left">课程与完成状态用于演示，不会创建真实会议或出勤记录。</p></section>${
     e.status === "review"
       ? /* HTML */ `<form id="review-form" data-id="${e.id}" class="panel">
           <h2>这次交换，收获了什么？</h2>
@@ -1117,6 +1130,7 @@ function captureDraft(form) {
     draft.formats = f.getAll("formats");
   }
   state.draft = draft;
+  state.draftStep = step;
   persist();
 }
 function clearFormError(form) {
@@ -1139,6 +1153,7 @@ function formError(form, error) {
     [/教学成果/, "goal"],
     [/经验说明/, "experience"],
     [/学习目标/, "learnGoal"],
+    [/第二节课/, "time2"],
     [/时间|课程不能重叠/, "time1"],
     [/邀请说明/, "note"],
     [/取消原因/, "reason"],
@@ -1220,11 +1235,15 @@ document.addEventListener("click", (ev) => {
           ? "/exchanges"
           : route().startsWith("/invite/")
             ? "/person/" + route().split("/")[2]
-            : "/discover",
+            : route().startsWith("/person/")
+              ? personReturnRoutes.get(route().split("/")[2]) || "/discover"
+              : "/discover",
       );
     } else if (a === "previous-step") {
       captureDraft(document.querySelector("#publish-form"));
       step--;
+      state.draftStep = step;
+      persist();
       render();
       window.scrollTo(0, 0);
     } else if (a === "accept" || a === "decline") {
@@ -1315,12 +1334,15 @@ document.addEventListener("submit", (ev) => {
       }
       if (step < 3) {
         step++;
+        state.draftStep = step;
+        persist();
         render();
         window.scrollTo(0, 0);
       } else {
         validatePost(draft);
         state.me = { ...state.me, ...draft, active: true, published: true };
         state.draft = null;
+        state.draftStep = 1;
         draft = null;
         step = 1;
         persist();
@@ -1420,6 +1442,11 @@ app.addEventListener("click", (ev) => {
   }
 });
 window.addEventListener("hashchange", () => {
+  const currentRoute = route();
+  if (currentRoute.startsWith("/person/") && /^\/(discover|matches|profile|exchange\/)/.test(previousRoute)) {
+    personReturnRoutes.set(currentRoute.split("/")[2], previousRoute);
+  }
+  previousRoute = currentRoute;
   history.replaceState({ skillpal: true }, "");
   dialog.close();
   render();
