@@ -2580,3 +2580,9 @@ fieldset:has([aria-invalid="true"]) {
   .material-download { font-size: 11px; }
   .material-code pre { font-size: 12px; padding: 12px; }
 }
+
+.conversation-prompts { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.conversation-prompts .btn { font-size: 12px; }
+.conversation-prompts .btn:disabled { opacity: 0.5; cursor: default; }
+
+.messages .message { scroll-margin-top: 100px; scroll-margin-bottom: 110px; }
