@@ -2218,7 +2218,7 @@ dialog .full {
     margin-bottom: 9px;
   }
   .welcome p {
-    font-size: 11px;
+    display: none;
   }
   .welcome .btn {
     margin-top: 17px;
@@ -2238,16 +2238,23 @@ dialog .full {
     font-size: 17px;
   }
   .my-snapshot {
-    padding: 15px 17px;
+    position: relative;
+    padding: 14px 17px;
   }
   .section-kicker {
-    font-size: 11px;
+    font-size: 0;
+  }
+  .section-kicker a {
+    position: absolute;
+    right: 13px;
+    top: 12px;
+    padding: 4px;
   }
   .mini-person {
     display: none;
   }
   .snapshot-pair {
-    padding: 12px 0 13px;
+    padding: 0 28px 10px 0;
   }
   .snapshot-pair > div {
     display: flex;
