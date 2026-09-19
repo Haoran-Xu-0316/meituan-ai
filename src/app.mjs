@@ -17,6 +17,8 @@ import {
   validatePost,
   createExchange,
   transition,
+  askDemoQuestion,
+  DEMO_QUESTIONS,
   STATUS,
   availableLessonTimes,
   beijingDate,
@@ -499,7 +501,7 @@ function lessonPlan(p) {
     <ol class="agenda">${lesson.agenda.map(([minutes, title, text]) => `<li><span class="agenda-time">${minutes}<small>分钟</small></span><div><h3>${escape(title)}</h3><p>${escape(text)}</p></div></li>`).join("")}</ol>
     <h3>学完可以带走</h3><p>${escape(lesson.takeaway)}</p>
     <h3>课前准备</h3><ul class="preparation-list">${lesson.prepare.map((item) => `<li>${escape(item)}</li>`).join("")}</ul>
-    <h3>课后练习</h3><p>${escape(lesson.practice)}</p></details>`;
+    <h3>课后练习</h3><p>${escape(lesson.practice)}</p><h3>这次先不涉及</h3><p>${escape(p.context.boundary)}</p></details>`;
 }
 function detail(p) {
   const m = match(state.me, p);
@@ -524,7 +526,7 @@ function detail(p) {
       <section class="panel course-summary">
         ${workshop(p)}
         ${lessonPlan(p)}
-        <details class="detail-section"><summary>了解${escape(p.name)}</summary><p>${escape(p.bio)}</p><h3>分享经验</h3><p>${escape(p.experience)}。</p></details>
+        <details class="detail-section"><summary>了解${escape(p.name)}</summary><p>${escape(p.bio)}</p><h3>为什么想学${escape(p.want.join("、"))}</h3><p>${escape(p.context.purpose)}</p><h3>目前卡在哪里</h3><p>${escape(p.context.obstacle)}</p><h3>分享经验</h3><p>${escape(p.experience)}。</p><h3>我习惯怎么交流</h3><p>${escape(p.context.style)}</p></details>
         <details class="detail-section"><summary>学习反馈<span>示例与本地评价</span></summary><div class="review-sample"><p>${escape(p.lesson.review)}</p><small>示例评价</small></div>${state.exchanges.filter((e) => e.personId === p.id && e.review).map((e) => `<div class="review-sample"><span class="stars">${"★".repeat(e.review.rating)}</span><p>${escape(e.review.text)}</p><small>我的本地演示评价</small></div>`).join("")}</details>
       </section>
       <aside class="panel exchange-aside partner-exchange">
@@ -754,9 +756,9 @@ function invite(p) {
       ${field("教学形式", select("format", m.formats, m.formats[0]))}${field(
         "给伙伴的一句话",
         /* HTML */ `<textarea name="note" required maxlength="300">
-你好，我想用${escape(m.teach[0])}交换你的${escape(
+你好，我可以分享${escape(m.teach[0])}，想向你学${escape(
             m.learn[0],
-          )}。期待一起完成一次小小的进步！</textarea
+          )}。我的目标是${escape(state.me.learnGoal)}。这次可以一起完成吗？</textarea
         >`,
       )}
       <div class="notice">
@@ -952,7 +954,7 @@ function exchangeDetail(e) {
           </div>
         </section>`
       : ""
-  }<section class="panel"><h2>交流记录 <span class="sample">留言演示</span></h2><p class="subtle">消息只保存在当前浏览器，不会发送给真实用户。</p><div class="messages">${e.messages
+  }<section class="panel"><h2>课前沟通 <span class="sample">模拟对话</span></h2><p class="subtle">选择问题查看伙伴的示例回复。自由留言仅保存到本机，不会发送给真实用户。</p>${!end ? `<div class="conversation-prompts">${Object.entries(DEMO_QUESTIONS).map(([topic, label]) => `<button class="btn secondary small" data-action="demo-question" data-id="${e.id}" data-topic="${topic}" ${e.messages.some((m) => m.demoTopic === topic) ? 'disabled title="已在下方回复"' : ""}>${escape(label)}</button>`).join("")}</div>` : ""}<div class="messages">${e.messages
     .map(
       (m) =>
         /* HTML */ `<div class="message ${m.by === "me" ? "mine" : ""}">
@@ -1238,6 +1240,16 @@ document.addEventListener("click", (ev) => {
       persist();
       render();
       window.scrollTo(0, 0);
+    } else if (a === "demo-question") {
+      askDemoQuestion(e, button.dataset.topic);
+      persist();
+      render();
+      const reply = document.querySelector(".messages .message:last-child");
+      if (reply) {
+        reply.setAttribute("tabindex", "-1");
+        reply.focus({ preventScroll: true });
+        reply.scrollIntoView({ block: "nearest", behavior: "auto" });
+      }
     } else if (a === "accept" || a === "decline") {
       transition(e, a);
       persist();
