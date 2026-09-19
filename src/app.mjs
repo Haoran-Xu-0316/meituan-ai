@@ -188,7 +188,7 @@ function header() {
           class="brand-dot"
         ></span
       ></a>
-      <div class="nav-caption">学一点新的，认识同路人</div>
+      <div class="nav-caption">技能互换平台</div>
       <nav aria-label="主导航">
         ${nav
           .map(
@@ -208,14 +208,10 @@ function header() {
           )
           .join("")}
       </nav>
-      <div class="sidebar-note">
-        ${icon("match")}<strong>每个人都有值得分享的技能</strong>
-        <p>一次交换，两份收获。</p>
-      </div>
       <a class="sidebar-user" href="#/profile"
         >${avatar(state.me)}<span
           ><strong>${escape(state.me.name)}</strong
-          ><small>今天也保持好奇</small></span
+          ><small>我的资料</small></span
         >${icon("chevron")}</a
       >
     </aside>
@@ -261,9 +257,9 @@ function card(p, why = false) {
       style="--cover:${sk.color};--ink:${sk.ink}"
       aria-label="查看${escape(p.name)}的${escape(p.teach[0])}技能"
       ><span class="cover-copy"
-        ><small>${sk.category} / ${sk.tag}</small
+        ><small>${sk.category}</small
         ><strong>${escape(p.teach.join(" / "))}</strong
-        ><span>一起学会一件具体的事</span></span
+        ></span
       ><span class="cover-art">${icon(sk.icon)}</span></a
     ><button
       class="favorite ${saved ? "saved" : ""}"
@@ -288,7 +284,7 @@ function card(p, why = false) {
       </div>
       <div class="skill-row wanted">
         <span class="role want">想学</span>
-        <p>${escape(p.want.join("、"))}<small>${escape(p.learnGoal)}</small></p>
+        <p>${escape(p.want.join("、"))}</p>
       </div>
       ${why
         ? /* HTML */ `<div class="match-reasons">
@@ -300,10 +296,6 @@ function card(p, why = false) {
             >
           </div>`
         : ""}
-      <div class="card-meta">
-        <span>${icon("video")}线上交流</span
-        ><span>${icon("clock")}每人45分钟</span>
-      </div>
       <div class="card-bottom">
         <span
           >${p.audience === "零基础" ? "零基础友好" : p.audience + "适用"}</span
@@ -329,57 +321,17 @@ function discover() {
           .toLowerCase()
           .includes(filter.q.toLowerCase())),
   );
-  return /* HTML */ `<section class="welcome-row">
-      <div class="welcome">
-        <span class="welcome-label">不止学习，也交换热爱</span>
-        <h1>你会的，<br />正好是我<span class="underline">想学的。</span></h1>
-        <p>把一个人的摸索，变成两个人的进步。</p>
-        <a class="btn dark" href="#/matches"
-          >寻找我的技能伙伴${icon("arrow")}</a
-        >
-        <div class="hero-symbol" aria-hidden="true">
-          <span>teach</span>${icon("match")}<span>learn</span>
-        </div>
-      </div>
-      <div class="my-snapshot">
-        <div class="section-kicker">
-          从你的擅长开始<a href="#/publish" aria-label="编辑我的供需"
-            >${icon("edit")}</a
-          >
-        </div>
-        <div class="mini-person">
-          ${avatar(state.me, "large")}
-          <div>
-            <strong>嗨，${escape(state.me.name)}</strong
-            ><small>让好奇心有个回应</small>
-          </div>
-        </div>
-        <div class="snapshot-pair">
-          <div>
-            <span class="muted">我能教</span
-            ><strong>${escape(state.me.teach.join("、"))}</strong>
-          </div>
-          ${icon("match")}
-          <div>
-            <span class="muted">我想学</span
-            ><strong>${escape(state.me.want.join("、"))}</strong>
-          </div>
-        </div>
-        <a class="snapshot-link" href="#/matches"
-          >${state.me.active
-            ? `找到${matches(state.me, PEOPLE).length}位互补伙伴`
-            : "技能已暂停，重新发布开始交换"}${icon("arrow")}</a
-        >
-      </div>
+  return /* HTML */ `<section class="discovery-intro">
+      <div class="intro-heading"><h1>用你会的，换你想学的。</h1><a class="btn dark" href="#/matches">${state.me.active ? `查看${matches(state.me, PEOPLE).length}位匹配` : "查看匹配"}${icon("arrow")}</a></div>
+      <div class="intro-skills"><span>我能教<strong>${escape(state.me.teach.join("、"))}</strong></span>${icon("match")}<span>我想学<strong>${escape(state.me.want.join("、"))}</strong></span><a class="text-btn" href="#/publish" aria-label="编辑我的供需">编辑${icon("edit")}</a></div>
+      <details class="intro-help"><summary>如何体验一次技能交换</summary><div class="guide-steps"><div><strong>1.看看谁和你互补</strong><p>默认身份小麦能教摄影、想学Python。在我的匹配中，林予安与你技能互补且有共同时间。</p><a class="text-btn" href="#/person/lin">查看这位伙伴${icon("arrow")}</a></div><div><strong>2.约定两节课</strong><p>查看课程安排，发送邀请后点击模拟对方接受。两节课分别记录你教什么、你学什么。</p></div><div><strong>3.记录学到的东西</strong><p>分别模拟完成两节课，写下收获并评价。也可以修改自己的供需，看看匹配结果如何变化。</p></div></div><p class="guide-note">人物、经历和评价均为示例。操作只保存在当前浏览器，不会联系真实用户。</p></details>
     </section>
-    <details class="demo-guide"><summary>${icon("info")}第一次体验？用摄影换一节Python课<span>查看步骤</span></summary><div class="guide-steps"><div><strong>1.看看谁和你互补</strong><p>默认身份小麦能教摄影、想学Python。在我的匹配中，林予安与你技能互补且有共同时间。</p><a class="text-btn" href="#/person/lin">查看这位伙伴${icon("arrow")}</a></div><div><strong>2.约定两节课</strong><p>查看课程安排，发送邀请后点击模拟对方接受。两节课分别记录你教什么、你学什么。</p></div><div><strong>3.记录学到的东西</strong><p>分别模拟完成两节课，写下收获并评价。也可以修改自己的供需，看看匹配结果如何变化。</p></div></div><p class="guide-note">人物、经历和评价均为示例。操作只保存在当前浏览器，不会联系真实用户。</p></details>
     <section aria-labelledby="discover-title">
       <div class="section-heading">
         <div>
-          <h2 id="discover-title">发现值得交换的技能</h2>
-          <p>有你想学的，也有需要你的。</p>
+          <h2 id="discover-title">发现技能</h2>
         </div>
-        <span class="subtle desktop-only">线上相遇，一起进步</span>
+        <span class="subtle desktop-only">线上交流，每人45分钟</span>
       </div>
       <div class="category-tabs" role="group" aria-label="技能分类">
         ${CATEGORIES.map(
@@ -453,7 +405,7 @@ function discover() {
             "/discover",
             "清除筛选",
           )}
-      <div class="end-note">${icon("leaf")}每一份擅长，都值得被看见。</div>
+
     </section>`;
 }
 function matching() {
@@ -461,7 +413,7 @@ function matching() {
     overlap = list.filter((m) => m.slots.length),
     other = list.filter((m) => !m.slots.length);
   return /* HTML */ `<div class="page-heading">
-      <span class="eyebrow">把彼此需要的，放在一起</span>
+
       <h1>我的技能伙伴</h1>
       <p>基于双方技能需求、学习基础、教学形式与可用时间推荐。</p>
     </div>
@@ -523,27 +475,46 @@ function matching() {
 }
 function lessonPlan(p) {
   const lesson = p.lesson;
-  return `<section class="panel lesson-plan"><div class="section-heading compact"><div><span class="eyebrow">从知道，到自己做出来</span><h2>这45分钟怎么学</h2></div><span class="sample">示例课程</span></div>
+  return `<details class="detail-section"><summary>课程安排与练习<span>45分钟</span></summary>
     <ol class="agenda">${lesson.agenda.map(([minutes, title, text]) => `<li><span class="agenda-time">${minutes}<small>分钟</small></span><div><h3>${escape(title)}</h3><p>${escape(text)}</p></div></li>`).join("")}</ol>
-    <div class="lesson-deliverable"><span class="role teach">带走的成果</span><p>${escape(lesson.takeaway)}</p></div>
-    <details class="preparation"><summary>课前准备与课后练习</summary><h3>开始前准备好</h3><ul>${lesson.prepare.map((item) => `<li>${escape(item)}</li>`).join("")}</ul><h3>课后再试一次</h3><p>${escape(lesson.practice)}</p></details></section>`;
+    <h3>学完可以带走</h3><p>${escape(lesson.takeaway)}</p>
+    <h3>课前准备</h3><ul class="preparation-list">${lesson.prepare.map((item) => `<li>${escape(item)}</li>`).join("")}</ul>
+    <h3>课后练习</h3><p>${escape(lesson.practice)}</p></details>`;
 }
 function detail(p) {
-  const sk = SKILLS[p.teach[0]],
-    m = match(state.me, p);
-  return `${back()}<section class="profile-hero" style="--cover:${sk.color};--ink:${sk.ink}"><div>${avatar(p, "xl")}<div><span class="eyebrow">${escape(p.job)} · 演示伙伴</span><h1>${escape(p.name)}</h1><p>${escape(p.bio)}</p></div></div><button class="btn white" data-action="favorite" data-id="${p.id}">${icon("heart")}${state.favorites.includes(p.id) ? "已收藏" : "收藏伙伴"}</button></section><div class="detail-layout"><div><section class="panel"><div class="panel-title"><span class="role teach">TA能教</span><h2>${escape(p.teach.join("、"))}</h2></div><p class="lead">${escape(p.goal)}</p><div class="facts"><div><span>适合基础</span><strong>${p.audience}</strong></div><div><span>单节时长</span><strong>45分钟</strong></div><div><span>教学形式</span><strong>${p.formats.join(" / ")}</strong></div></div><h3>分享经验</h3><p>${escape(p.experience)}。以上为用户自述示例，不是平台认证。</p></section>${lessonPlan(p)}<section class="panel"><div class="panel-title"><span class="role want">TA想学</span><h2>${escape(p.want.join("、"))}</h2></div><p class="lead">${escape(p.learnGoal)}</p><p class="subtle">当前基础：${p.level}</p></section><section class="panel"><h2>可约时间</h2><p class="subtle">每周固定时段，北京时间</p><div class="tag-list">${p.slots.map((s) => pill(slotLabel(s), m.slots.includes(s) ? "yellow" : "")).join("")}</div></section><section class="panel"><h2>学习反馈 <span class="sample">示例评价</span></h2><div class="review-sample"><span class="stars">★★★★★</span><p>${escape(p.lesson.review)}</p><small>示例学习者 · 用于展示评价结构</small></div>${state.exchanges
-    .filter((e) => e.personId === p.id && e.review)
-    .map(
-      (e) =>
-        /* HTML */ `<div class="review-sample">
-          <span class="stars">${"★".repeat(e.review.rating)}</span>
-          <p>${escape(e.review.text)}</p>
-          <small>我的本地演示评价</small>
-        </div>`,
-    )
-    .join(
-      "",
-    )}</section></div><aside class="exchange-aside panel"><span class="eyebrow">一人分享一次，两个人都有收获</span><h2>我们可以这样交换</h2><div class="exchange-pair"><div>${avatar(state.me)}<strong>你教${escape(m.teach.join("、") || state.me.teach[0])}</strong><small>分享你的擅长</small></div>${icon("match")}<div>${avatar(p)}<strong>TA教${escape(m.learn.join("、") || p.teach[0])}</strong><small>学一点新东西</small></div></div><ul class="reason-list"><li>${icon(m.teach.length ? "check" : "info")}${m.teach.length ? "你能教的，正好是TA想学的" : "TA的学习需求与你能教的还不一致"}</li><li>${icon(m.learn.length ? "check" : "info")}${m.learn.length ? "TA能教你想学的技能" : "TA的技能暂未覆盖你的学习需求"}</li><li>${icon(m.slots.length ? "check" : "clock")}${m.slots.length ? slotLabel(m.slots[0]) + "双方都有空" : "需要协商具体时间"}</li><li>${icon(m.formats.length ? "check" : "info")}${m.formats.length ? "共同形式：" + escape(m.formats.join("、")) : "暂无共同教学形式，请调整发布设置"}</li><li>${icon(m.fit === 2 ? "check" : "info")}${m.fit === 2 ? "双方教学内容适合彼此基础" : "开始前建议确认教学难度"}</li></ul>${m.eligible ? /* HTML */ `<a class="btn primary full" href="#/invite/${p.id}">发起技能交换${icon("arrow")}</a>` : /* HTML */ `<a class="btn primary full" href="#/publish?return=${p.id}">${state.me.active ? "调整供需后交换" : "发布技能后交换"}${icon("arrow")}</a>`}<p class="fine-print">免费互换，每人一节45分钟课程。<br>这是演示体验，不会联系真实用户。</p></aside></div><div class="mobile-invite"><a class="btn primary full" href="#/${m.eligible ? "invite/" + p.id : "publish?return=" + p.id}">${m.eligible ? "发起技能交换" : "调整供需后交换"}${icon("arrow")}</a></div>`;
+  const m = match(state.me, p);
+  const actionPath = m.eligible ? "/invite/" + p.id : "/publish?return=" + p.id;
+  const actionLabel = m.eligible ? "发起技能交换" : "调整供需后交换";
+  const reasons = [];
+  if (!state.me.active) reasons.push("你的技能已暂停，请先重新发布。");
+  else if (!m.teach.length || !m.learn.length) reasons.push("双方技能需求尚未互补，调整供需后再交换。");
+  else reasons.push(`你教${m.teach.join("、")}，向TA学${m.learn.join("、")}。`);
+  if (!m.formats.length) reasons.push("暂时没有共同教学形式。");
+  if (m.fit !== 2) reasons.push("开始前请确认教学难度是否适合彼此。");
+  return `${back()}
+    <header class="partner-header">
+      <div class="partner-identity">${avatar(p, "large")}<div><h1>${escape(p.name)}</h1><p>${escape(p.job)}<span class="sample">演示伙伴</span></p></div></div>
+      <button class="btn secondary" data-action="favorite" data-id="${p.id}" aria-pressed="${state.favorites.includes(p.id)}">${icon("heart")}${state.favorites.includes(p.id) ? "已收藏" : "收藏"}</button>
+    </header>
+    <section class="panel partner-offer">
+      <div><span class="role teach">TA能教</span><h2>${escape(p.teach.join("、"))}</h2><p>${escape(p.goal)}</p><small>${escape(p.audience)}适用</small></div>
+      <div><span class="role want">TA想学</span><h2>${escape(p.want.join("、"))}</h2><p>${escape(p.learnGoal)}</p><small>目前基础：${escape(p.level)}</small></div>
+    </section>
+    <div class="detail-layout partner-layout">
+      <section class="panel course-summary">
+        ${lessonPlan(p)}
+        <details class="detail-section"><summary>了解${escape(p.name)}</summary><p>${escape(p.bio)}</p><h3>分享经验</h3><p>${escape(p.experience)}。</p></details>
+        <details class="detail-section"><summary>学习反馈<span>示例与本地评价</span></summary><div class="review-sample"><p>${escape(p.lesson.review)}</p><small>示例评价</small></div>${state.exchanges.filter((e) => e.personId === p.id && e.review).map((e) => `<div class="review-sample"><span class="stars">${"★".repeat(e.review.rating)}</span><p>${escape(e.review.text)}</p><small>我的本地演示评价</small></div>`).join("")}</details>
+      </section>
+      <aside class="panel exchange-aside partner-exchange">
+        <div class="availability"><h3>可约时间</h3><p class="subtle">每周固定时段，北京时间</p><div class="tag-list">${p.slots.map((slot) => pill(slotLabel(slot), m.slots.includes(slot) ? "yellow" : "")).join("")}</div><small>${m.slots.length ? "黄色时段为双方共同空闲" : "与你的空闲时间不同，需要协商"}</small></div>
+        <p class="match-note">${escape(reasons.join(" "))}</p>
+        <a class="btn primary full desktop-invite" href="#${actionPath}">${actionLabel}${icon("arrow")}</a>
+        <p class="fine-print">${escape(p.formats.join(" / "))}<br>免费互换，每人45分钟。</p>
+      </aside>
+    </div>
+    <p class="detail-disclosure">人物、课程与反馈为演示内容，操作仅保存在当前浏览器。</p>
+    <div class="mobile-invite"><a class="btn primary full" href="#${actionPath}">${actionLabel}${icon("arrow")}</a></div>`;
 }
 function checkboxGroup(name, values, selected, labels = values) {
   return /* HTML */ `<div class="choice-grid">
@@ -571,7 +542,7 @@ function publish() {
   return /* HTML */ `<div class="form-page">
     ${back()}
     <div class="page-heading">
-      <span class="eyebrow">让你的擅长，被需要的人看见</span>
+
       <h1>${state.me.published ? "编辑我的技能供需" : "发布技能"}</h1>
       <p>不用是专家，一次分享能帮助对方前进一步就很好。</p>
     </div>
@@ -712,9 +683,9 @@ function invite(p) {
   return /* HTML */ `<div class="form-page">
     ${back()}
     <div class="page-heading">
-      <span class="eyebrow">把一次相遇，变成一次学习</span>
+
       <h1>邀请${escape(p.name)}交换技能</h1>
-      <p>先约定成果，再留好彼此的时间。</p>
+      <p>确认交换技能，并安排两次交流时间。</p>
     </div>
     ${existing.length ? `<div class="notice invitation-existing"><div><strong>你们已有进行中的交换</strong><p>相同技能无需重复邀请，可以继续之前的约定。</p>${existing.map((e) => `<a class="text-btn" href="#/exchange/${e.id}">查看${escape(e.teach)}与${escape(e.learn)}的交换${icon("arrow")}</a>`).join("")}</div></div>` : ""}
     <form id="invite-form" data-person="${p.id}" class="panel form-panel">
@@ -787,9 +758,9 @@ function exchanges() {
   };
   const list = state.exchanges.filter(groups[exchangeTab]);
   return /* HTML */ `<div class="page-heading">
-      <span class="eyebrow">每一次约定，都值得认真对待</span>
+
       <h1>我的交换</h1>
-      <p>从互相需要，到一起学会。</p>
+      <p>查看邀请、课程进度和评价。</p>
     </div>
     <div class="segmented">
       ${Object.keys(groups)
@@ -847,7 +818,7 @@ function exchanges() {
 function exchangeDetail(e) {
   const p = PEOPLE.find((x) => x.id === e.personId);
   const end = ["completed", "cancelled", "declined"].includes(e.status);
-  return `${back()}<div class="page-heading exchange-heading"><div><span class="eyebrow">一份约定，两份收获</span><h1>与${escape(e.personName)}的技能交换</h1><p>${escape(e.teach)}交换${escape(e.learn)}，${escape(e.format)}。</p></div>${badge(e.status)}</div>${
+  return `${back()}<div class="page-heading exchange-heading"><div><h1>与${escape(e.personName)}的技能交换</h1><p>${escape(e.teach)}交换${escape(e.learn)}，${escape(e.format)}。</p></div>${badge(e.status)}</div>${
     e.status === "pending"
       ? /* HTML */ `<div class="demo-control">
           <div>
@@ -980,7 +951,7 @@ function exchangeDetail(e) {
 function profile() {
   const m = state.me;
   return /* HTML */ `<div class="page-heading">
-      <span class="eyebrow">学习与分享，都从你开始</span>
+
       <h1>我的SkillPal</h1>
     </div>
     <div class="profile-summary panel">
@@ -1106,7 +1077,7 @@ function render() {
       ${content}
       <footer>
         <span class="footer-brand">SkillPal</span
-        ><span>你会的，正好是我想学的。</span><span>技能互换产品演示</span>
+        ><span>技能互换产品演示</span>
       </footer>
     </main>`;
   if (focusSelector)
