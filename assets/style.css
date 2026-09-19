@@ -525,10 +525,10 @@ input[type="radio"] {
   display: flex;
   position: relative;
   align-items: flex-end;
-  height: 172px;
+  height: 188px;
   background: var(--cover);
   color: #fff;
-  padding: 18px 20px;
+  padding: 14px 16px;
   overflow: hidden;
   isolation: isolate;
 }
@@ -538,15 +538,8 @@ input[type="radio"] {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 48%;
+  object-position: var(--photo-position, center);
   z-index: -2;
-}
-.skill-cover::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, #12100d12 20%, #12100d24 40%, #12100dc7 100%);
-  z-index: -1;
 }
 .photo-label {
   position: absolute;
@@ -560,20 +553,35 @@ input[type="radio"] {
   letter-spacing: 0.2px;
 }
 .cover-copy {
-  display: flex;
-  flex-direction: column;
+  display: inline-flex;
   max-width: 100%;
-  text-shadow: 0 1px 3px #0005;
-}
-.cover-copy small {
-  font-size: 10px;
-  line-height: 1.6;
+  background: #fffffff2;
+  color: var(--ink);
+  padding: 7px 11px;
+  border-radius: 7px;
+  box-shadow: 0 2px 8px #0000000a;
 }
 .cover-copy strong {
-  font-size: 25px;
-  line-height: 1.2;
-  letter-spacing: -0.5px;
-  margin: 4px 0 0;
+  font-size: 16px;
+  line-height: 1.25;
+  font-weight: 700;
+}
+.card-title {
+  font-size: 17px;
+  font-weight: 650;
+  line-height: 1.5;
+  min-height: 3em;
+  margin: 0 0 16px;
+  letter-spacing: -0.3px;
+}
+.card-title a {
+  color: var(--ink);
+}
+.card-title a:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--yellow);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 4px;
 }
 .favorite {
   position: absolute;
@@ -663,7 +671,7 @@ input[type="radio"] {
   min-height: 42px;
 }
 .skill-row.wanted {
-  margin-top: 10px;
+  margin-top: 16px;
 }
 .skill-row.wanted p {
   font-size: 12px;
@@ -1644,9 +1652,6 @@ dialog .full {
   }
 }
 @media (max-width: 1250px) {
-  .cover-copy small {
-    font-size: 8px;
-  }
   .card-body {
     padding: 17px 16px 0;
   }
@@ -1694,9 +1699,6 @@ dialog .full {
   }
   .card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .cover-copy small {
-    font-size: 10px;
   }
   .card-body {
     padding: 18px 20px 0;
@@ -1895,14 +1897,8 @@ dialog .full {
     gap: 18px;
   }
   .skill-cover {
-    height: 184px;
-    padding: 20px 22px;
-  }
-  .cover-copy strong {
-    font-size: 28px;
-  }
-  .cover-copy small {
-    font-size: 10px;
+    height: 202px;
+    padding: 14px 16px;
   }
   .card-body {
     padding: 19px 22px 0;
@@ -2286,11 +2282,6 @@ dialog .full {
 }
 .card-bottom > span {
   font-size: 11px;
-}
-.cover-copy small {
-  font-size: 10px;
-  white-space: normal;
-  max-width: 180px;
 }
 .mobile-invite {
   display: none;
