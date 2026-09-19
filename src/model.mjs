@@ -289,6 +289,28 @@ export function createExchange(state, p, input, now = new Date()) {
   state.exchanges.unshift(e);
   return e;
 }
+export const DEMO_QUESTIONS = {
+  preparation: "我要准备什么？",
+  scope: "这次能学到什么？",
+  needs: "你想重点练什么？",
+};
+export function askDemoQuestion(e, topic, now = new Date()) {
+  if (!["pending", "scheduled", "learning", "review"].includes(e.status))
+    throw Error("这次交换已结束，不能继续模拟问答。");
+  const person = PEOPLE.find((p) => p.id === e.personId);
+  if (!person || !Object.hasOwn(DEMO_QUESTIONS, topic)) throw Error("请选择一个有效的课前问题。");
+  if (e.messages.some((m) => m.demoTopic === topic)) throw Error("这个问题已有回复，可以在交流记录中查看。");
+  const replies = {
+    preparation: person.lesson.prepare.join("；") + "。" + person.context.style,
+    scope: e.lessons[1].goal + "。" + person.context.boundary,
+    needs: person.context.purpose + "目前卡在这里：" + person.context.obstacle,
+  };
+  e.messages.push(
+    { by: "me", text: DEMO_QUESTIONS[topic], at: now.toISOString(), demoTopic: topic },
+    { by: "partner", text: replies[topic], at: now.toISOString(), demo: true, demoTopic: topic },
+  );
+  return e;
+}
 export function transition(e, action, payload = {}) {
   if (action === "accept" || action === "decline") {
     if (e.status !== "pending") throw Error("这条邀请已经处理。");
@@ -297,7 +319,7 @@ export function transition(e, action, payload = {}) {
       by: "partner",
       text:
         action === "accept"
-          ? "邀请收到，两个时间都可以。期待一起学习！"
+          ? PEOPLE.find((p) => p.id === e.personId)?.context.acceptNote || "邀请收到，两个时间都可以。我们先确认这次的学习目标。"
           : "这次时间不太合适，期待下次一起学习。",
       at: new Date().toISOString(),
       demo: true,
