@@ -210,26 +210,6 @@ a .icon {
   padding: 2px 6px;
   border-radius: 10px;
 }
-.sidebar-user {
-  border-top: 1px solid var(--line);
-  padding: 19px 3px 2px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.sidebar-user strong {
-  font-size: 13px;
-}
-.sidebar-user small {
-  display: block;
-  font-size: 10px;
-  color: var(--muted);
-  margin-top: 3px;
-}
-.sidebar-user > .icon {
-  width: 16px;
-  margin-left: auto;
-}
 .topbar {
   position: fixed;
   left: 208px;
@@ -2566,4 +2546,37 @@ fieldset:has([aria-invalid="true"]) {
   .detail-section p, .preparation-list { font-size: 13px; }
   .partner-exchange .desktop-invite { display: none; }
   .detail-disclosure { line-height: 1.8; }
+}
+
+/* Practice materials share the existing disclosure hierarchy. */
+.partner-layout > * { min-width: 0; }
+.workshop .workshop-title { font-size: 18px; margin: 8px 0 10px; }
+.workshop h4 { font-size: 14px; line-height: 1.7; margin: 24px 0 10px; }
+.material-text { white-space: pre-line; }
+.material-downloads { display: flex; flex-wrap: wrap; gap: 8px; margin: 15px 0 24px; }
+.material-download { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line); border-radius: 7px; padding: 7px 10px; font-size: 12px; overflow-wrap: anywhere; max-width: 100%; }
+.material-download:hover { background: var(--yellow-soft); }
+.material-download .icon { width: 14px; flex-shrink: 0; transform: rotate(90deg); }
+.material-table { max-width: 100%; overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+.material-table table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+.material-table th { background: var(--bg); font-weight: 600; }
+.material-table th, .material-table td { padding: 10px 12px; border-bottom: 1px solid var(--line); min-width: 70px; vertical-align: top; line-height: 1.7; }
+.material-table tr:last-child td { border-bottom: 0; }
+.material-code { margin: 22px 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.material-code > summary { padding: 12px; font-size: 13px; font-weight: 600; cursor: pointer; overflow-wrap: anywhere; }
+.material-code pre { margin: 0; padding: 16px; background: #f5f6f8; overflow-x: auto; max-width: 100%; font-size: 12px; line-height: 1.8; tab-size: 4; }
+.material-code code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+.material-result { border-top: 1px solid var(--line); margin-top: 24px; }
+.material-challenge { background: var(--yellow-soft); border-radius: 10px; padding: 16px; margin-top: 24px; }
+.material-challenge h4 { margin-top: 0; }
+.material-challenge details { margin-top: 14px; padding-top: 12px; border-top: 1px solid #2222; }
+.material-challenge summary { cursor: pointer; font-size: 13px; font-weight: 600; }
+.material-challenge details p { margin-top: 10px; }
+.material-source { font-size: 12px !important; margin-top: 22px; }
+.material-source a { text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 650px) {
+  .workshop .workshop-title { font-size: 16px; }
+  .material-table th, .material-table td { padding: 8px; font-size: 12px; }
+  .material-download { font-size: 11px; }
+  .material-code pre { font-size: 12px; padding: 12px; }
 }
