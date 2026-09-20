@@ -1,6 +1,7 @@
 // Motion is progressive enhancement: content and controls work without it.
 const seenCards = new Set();
 let previousCardSet = "";
+let previousView = "";
 const preferenceKey = 'skillpal-motion';
 let userEnabled = true;
 try { userEnabled = localStorage.getItem(preferenceKey) !== 'off'; } catch {}
@@ -17,7 +18,10 @@ export function mountMotion(root) {
   const { signal } = controller;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
   const fine = matchMedia('(hover: hover) and (pointer: fine)');
-  const toggle = root.querySelector('[data-motion-toggle]');
+  const preference = root.querySelector('[data-reduce-motion]');
+  const view = root.querySelector('main')?.dataset.view;
+  let changedView = view && view !== previousView;
+  previousView = view;
   const animations = new Set();
   const hero = root.querySelector('.discovery-intro');
   const cards = [...root.querySelectorAll('.skill-card')];
@@ -53,14 +57,19 @@ export function mountMotion(root) {
     animations.forEach(a => a.cancel());
     animations.clear();
     document.documentElement.dataset.motion = enabled() ? 'on' : 'off';
-    toggle?.setAttribute('aria-pressed', String(enabled()));
-    if (toggle) {
-      toggle.textContent = enabled() ? '动效 开' : '动效 关';
-      toggle.disabled = reduce.matches;
-      toggle.title = reduce.matches ? '已跟随系统减少动态效果设置' : '切换页面动态效果';
+    if (preference) {
+      preference.checked = !enabled();
+      preference.disabled = reduce.matches;
+      preference.title = reduce.matches ? '已跟随系统减少动态效果设置' : '减少页面动态效果';
     }
     updateAmbient();
-    if (!enabled() || !('IntersectionObserver' in window)) return;
+    if (!enabled()) { changedView = false; return; }
+    if (changedView) {
+      changedView = false;
+      const heading = root.querySelector('.page-heading');
+      if (heading) animate(heading, [{ opacity: 0, translate: '0 10px' }, { opacity: 1, translate: '0 0' }], { duration: 320, easing: 'cubic-bezier(.16,1,.3,1)' });
+    }
+    if (!('IntersectionObserver' in window)) return;
     if (hero) {
       ambientObserver = new IntersectionObserver(entries => {
         heroVisible = entries[0].isIntersecting;
@@ -82,8 +91,8 @@ export function mountMotion(root) {
     }, { threshold: 0.08 });
     cards.forEach(card => observer.observe(card));
   };
-  toggle?.addEventListener('click', () => {
-    userEnabled = !userEnabled;
+  preference?.addEventListener('change', () => {
+    userEnabled = !preference.checked;
     try { localStorage.setItem(preferenceKey, userEnabled ? 'on' : 'off'); } catch {}
     sync();
   }, { signal });
