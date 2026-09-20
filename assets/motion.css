@@ -1,0 +1,75 @@
+/* Glass and depth remain enhancements; all content rests on readable surfaces. */
+:root { --glass: #ffffffd9; --edge: #ffffffed; --ease-out: cubic-bezier(.2,.8,.2,1); }
+body { background: radial-gradient(ellipse at 92% 0, #fff4bd70, transparent 42%), var(--bg); }
+.topbar, .sidebar, .mobile-nav {
+  background: var(--glass);
+  backdrop-filter: blur(20px) saturate(130%);
+  -webkit-backdrop-filter: blur(20px) saturate(130%);
+  box-shadow: inset 0 1px 0 var(--edge);
+}
+.search { background: #eef0f3a8; box-shadow: inset 0 1px 2px #22222204; }
+.nav-link.active { box-shadow: 0 5px 14px #d8ad0020, inset 0 1px 0 #fff8; }
+.motion-toggle { border: 1px solid #dedfe3; border-radius: 20px; background: #ffffffa8; color: #595b64; padding: 7px 10px; font-size: 11px; white-space: nowrap; min-height: 32px; }
+.motion-toggle[aria-pressed="true"] { border-color: #dac454; color: #5e510f; background: #fff9db; }
+.motion-toggle:disabled { cursor: default; opacity: .7; }
+.discovery-intro {
+  position: relative;
+  isolation: isolate;
+  background: radial-gradient(ellipse at 80% 0, #fff7baa8, transparent 65%), linear-gradient(115deg, #ffe66e, #ffd100);
+  border: 1px solid #f0cb3e;
+  box-shadow: inset 0 1px 0 #fff9, 0 12px 30px #b79c1410;
+}
+.intro-heading { position: relative; min-height: 112px; padding-right: 195px; flex-wrap: wrap; gap: 14px; justify-content: flex-start; }
+.intro-heading h1 { flex-basis: 100%; letter-spacing: -1px; }
+.intro-heading .btn { font-size: 12px; padding: 10px 15px; }
+.exchange-sculpture { position: absolute; width: 180px; height: 144px; right: 12px; top: -10px; pointer-events: none; perspective: 650px; }
+.sculpture-stage { position: absolute; inset: 0; transform-style: preserve-3d; transform: rotateX(calc(-12deg + var(--tilt-x, 0deg))) rotateY(calc(-18deg + var(--tilt-y, 0deg))); transition: transform .45s var(--ease-out); }
+.glass-tile { position: absolute; width: 98px; height: 100px; display: grid; place-items: center; border-radius: 24px; border: 1px solid #ffffffd9; box-shadow: inset 2px 2px 1px #fff9, inset -3px -3px 2px #ffffff38, 6px 12px 18px #634b1720; }
+.glass-tile.back { left: 18px; top: 8px; background: linear-gradient(135deg, #ffffffcb, #ffffff46); transform: translateZ(-15px) rotateZ(-17deg); color: #a17b0d; }
+.glass-tile.front { right: 6px; bottom: 0; background: linear-gradient(135deg, #fff9caef, #ffec73b8); transform: translateZ(25px) rotateZ(13deg); color: #594300; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.glass-tile .icon { width: 44px; height: 44px; stroke-width: 1.25; }
+.sculpture-shadow { position: absolute; left: 20px; right: 0; bottom: -14px; height: 17px; border-radius: 50%; background: #86640020; filter: blur(9px); }
+.intro-skills { background: #ffffff35; padding: 13px 15px; border: 1px solid #ffffff5c; border-radius: 12px; }
+.intro-help { border-top: 0; margin-top: 10px; padding-top: 0; }
+.skill-card { box-shadow: 0 3px 10px #25211504; border-color: #e5e6e9; transform: perspective(1000px) rotateX(0) rotateY(0); transition: transform .4s var(--ease-out), box-shadow .3s, border-color .3s; }
+.skill-card::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: radial-gradient(circle at var(--light-x, 50%) var(--light-y, 0%), #ffffff4d, transparent 48%); opacity: 0; pointer-events: none; transition: opacity .3s; }
+.cover-copy, .favorite { background: #ffffffe0; border: 1px solid #fff9; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: 0 3px 8px #1515150b; }
+.btn, .category, .favorite, .nav-link, .card-link .icon { transition: transform .22s var(--ease-out), box-shadow .22s, background .22s, color .22s; }
+.btn.primary { box-shadow: inset 0 1px 0 #fff8, 0 4px 10px #d4ac0020; }
+.btn:active, .favorite:active { transform: scale(.96); }
+.btn:focus-visible, .motion-toggle:focus-visible { outline: 3px solid #8b6b0a; outline-offset: 3px; }
+dialog[open] { animation: dialog-arrive .25s var(--ease-out); box-shadow: 0 28px 90px #15151526; }
+dialog::backdrop { background: #171a2440; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+@keyframes dialog-arrive { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: none; } }
+@media (hover: hover) and (pointer: fine) {
+  html[data-motion="on"] .skill-card.is-tilting { transform: perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px); box-shadow: 0 18px 36px #3a30131a, 0 4px 10px #3a301308; border-color: #d5c987; }
+  html[data-motion="on"] .skill-card.is-tilting::after { opacity: 1; }
+  html[data-motion="on"] .btn:hover { transform: translateY(-2px); }
+  html[data-motion="on"] .card-link:hover .icon { transform: translateX(4px); }
+  html[data-motion="on"] .favorite:hover { transform: scale(1.08); }
+}
+@media (max-width: 700px) {
+  .intro-heading { min-height: 100px; padding-right: 104px; }
+  .intro-heading h1 { font-size: 24px; max-width: 200px; }
+  .intro-heading .btn { margin-top: 13px; }
+  .exchange-sculpture { width: 112px; height: 122px; right: -6px; top: 9px; }
+  .glass-tile { width: 68px; height: 72px; border-radius: 18px; }
+  .glass-tile.back { left: 0; }
+  .glass-tile.front { right: 0; bottom: 10px; }
+  .glass-tile .icon { width: 32px; height: 32px; }
+  .intro-skills { padding: 11px; gap: 10px; }
+  .motion-toggle { padding: 4px 7px; min-height: 30px; font-size: 10px; }
+  .top-actions { gap: 7px; flex-shrink: 0; }
+  .topbar { gap: 9px; }
+  .topbar .search { min-width: 0; width: 0; }
+  .topbar .search input { width: 0; }
+  .mobile-nav { bottom: 10px; left: 10px; right: 10px; width: auto; border: 1px solid #fff; border-radius: 20px; box-shadow: 0 8px 30px #22222215, inset 0 1px 0 #fff; }
+}
+html[data-motion="off"] *, html[data-motion="off"] *::before, html[data-motion="off"] *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+html[data-motion="off"] .skill-card, html[data-motion="off"] .btn, html[data-motion="off"] .favorite { transform: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+@supports not (backdrop-filter: blur(1px)) {
+  .topbar, .sidebar, .mobile-nav, .cover-copy, .favorite { background: #fffffff5; }
+}
