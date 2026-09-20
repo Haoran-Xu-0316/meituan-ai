@@ -48,9 +48,9 @@ Operate模式。白天在电脑或手机上寻找学习伙伴，优先清晰地�
 The visual direction references the pointer-responsive material and depth of ThreeUI's Holographic Glitter Card, with an original implementation for SkillPal. The site uses CSS 3D transforms, native Web Animations and backdrop blur; it does not require Three.js or a WebGL canvas.
 
 - Keep Meituan yellow, readable white card bodies and all twelve distinct lesson images.
-- Two translucent tiles in the introduction represent learning and exchange. Pointer movement changes their perspective; there is no continuous background animation.
-- Cards tilt at most three degrees per axis. Reflection, elevation and shadow respond to the pointer, while touch devices retain normal scrolling and press feedback.
-- Cards enter once per partner during the browser session, and remain visible if animation APIs are unavailable.
+- Two translucent tiles in the introduction represent learning and exchange. Pointer movement changes their perspective. Two orbital light points and gently floating tiles animate only while the introduction is visible and the document is foregrounded.
+- Cards tilt at most 4.5 degrees per axis, with a small counter-moving photograph parallax. Reflection, elevation and shadow respond to the pointer, while touch devices retain normal scrolling and press feedback.
+- Cards enter in a short stagger when the visible partner collection changes; favorite updates do not replay the entire grid. New cards still reveal as they enter the viewport, and content remains visible if animation APIs are unavailable.
 - The motion toggle persists separately from demo learning records. The system's reduced-motion preference takes priority.
 - Each render disposes observers, animation frames and listeners. Hidden tabs and scrolling clear transient pointer state.
 - Glass surfaces have opaque fallbacks; navigation, focus outlines and publishing remain usable on narrow screens.
