@@ -18,7 +18,7 @@ function harness(t, reduced = false) {
   const toggle = new EventTarget();
   const attributes = {};
   toggle.setAttribute = (name, value) => { attributes[name] = value; };
-  root.querySelector = selector => selector === '[data-motion-toggle]' ? toggle : null;
+  root.querySelector = selector => selector === '[data-reduce-motion]' ? toggle : null;
   root.querySelectorAll = () => [];
   const properties = new Map();
   const card = { classList: { add() {}, remove() {} }, style: {
@@ -59,12 +59,12 @@ test('route cleanup cancels a queued frame and removes old motion listeners', t 
   assert.equal(h.properties.size, 0);
 });
 
-test('system reduced motion disables tilt and the optional toggle', t => {
+test('system reduced motion disables tilt and checks the profile preference', t => {
   const h = harness(t, true);
   const dispose = mountMotion(h.root);
   assert.equal(h.doc.documentElement.dataset.motion, 'off');
   assert.equal(h.toggle.disabled, true);
-  assert.equal(h.attributes['aria-pressed'], 'false');
+  assert.equal(h.toggle.checked, true);
   h.move(); h.runFrame();
   assert.equal(h.properties.size, 0);
   dispose();
@@ -73,7 +73,7 @@ test('system reduced motion disables tilt and the optional toggle', t => {
 test('ambient motion pauses offscreen, in background and on cleanup', t => {
   const h = harness(t);
   const hero = { dataset: {} };
-  h.root.querySelector = selector => selector === '.discovery-intro' ? hero : h.toggle;
+  h.root.querySelector = selector => selector === '.discovery-intro' ? hero : selector === '[data-reduce-motion]' ? h.toggle : null;
   const observers = [];
   class Observer {
     constructor(callback) { this.callback = callback; this.disconnected = false; observers.push(this); }
@@ -98,4 +98,23 @@ test('ambient motion pauses offscreen, in background and on cleanup', t => {
   assert.equal(hero.dataset.ambient, 'false');
   dispose();
   assert.ok(observers.every(observer => observer.disconnected));
+});
+
+
+test('profile preference persists and listeners are removed on route change', t => {
+  const h = harness(t);
+  const dispose = mountMotion(h.root);
+  h.toggle.checked = true;
+  h.toggle.dispatchEvent(new Event('change'));
+  assert.equal(h.doc.documentElement.dataset.motion, 'off');
+  dispose();
+  const next = harness(t);
+  const clean = mountMotion(next.root);
+  assert.equal(next.toggle.checked, true);
+  next.toggle.checked = false;
+  next.toggle.dispatchEvent(new Event('change'));
+  assert.equal(next.doc.documentElement.dataset.motion, 'on');
+  h.toggle.dispatchEvent(new Event('change'));
+  assert.equal(next.doc.documentElement.dataset.motion, 'on');
+  clean();
 });
