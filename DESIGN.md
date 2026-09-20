@@ -42,3 +42,17 @@ Operate模式。白天在电脑或手机上寻找学习伙伴，优先清晰地�
 详情先并排展示能教与想学，再呈现课程内容与预约操作。课程安排、准备、练习、个人经历和反馈完整保留，默认通过折叠面板按需阅读。时间与匹配说明集中一处。手机仅显示固定的交换按钮，隐藏正文中的重复按钮。
 
 首页卡片保留技能、伙伴、教学成果、学习需求和入口，删除重复口号、通用副标题与重复时长说明。全局导航和业务页标题使用直接的功能名称。
+
+## Glass and motion
+
+The visual direction references the pointer-responsive material and depth of ThreeUI's Holographic Glitter Card, with an original implementation for SkillPal. The site uses CSS 3D transforms, native Web Animations and backdrop blur; it does not require Three.js or a WebGL canvas.
+
+- Keep Meituan yellow, readable white card bodies and all twelve distinct lesson images.
+- Two translucent tiles in the introduction represent learning and exchange. Pointer movement changes their perspective; there is no continuous background animation.
+- Cards tilt at most three degrees per axis. Reflection, elevation and shadow respond to the pointer, while touch devices retain normal scrolling and press feedback.
+- Cards enter once per partner during the browser session, and remain visible if animation APIs are unavailable.
+- The motion toggle persists separately from demo learning records. The system's reduced-motion preference takes priority.
+- Each render disposes observers, animation frames and listeners. Hidden tabs and scrolling clear transient pointer state.
+- Glass surfaces have opaque fallbacks; navigation, focus outlines and publishing remain usable on narrow screens.
+
+Reference: https://threeui.com/three-js/holographic-glitter-card
