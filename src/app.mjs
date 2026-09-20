@@ -224,7 +224,7 @@ function header() {
         /><button aria-label="搜索" type="submit">${icon("arrow")}</button>
       </form>
       <div class="top-actions">
-        <button type="button" class="motion-toggle" data-motion-toggle aria-label="页面动效" aria-pressed="true">动效 开</button><a class="btn primary" href="#/publish" aria-label="发布技能"
+        <a class="btn primary" href="#/publish" aria-label="发布技能"
           >${icon("plus")}<span>发布技能</span></a
         >
       </div>
@@ -782,6 +782,21 @@ function invite(p) {
     </form>
   </div>`;
 }
+// Derive the next action from the exchange itself, without inventing activity.
+function exchangeNextStep(exchange) {
+  const labels = {
+    pending: "等待伙伴回应，可查看邀请详情",
+    review: "两节课已完成，写下这次交换的收获",
+    completed: "交换已完成，可回顾学习记录与评价",
+    cancelled: "交换已取消，可查看结束原因",
+    declined: "邀请未被接受，可以寻找其他伙伴",
+  };
+  if (labels[exchange.status]) return labels[exchange.status];
+  const next = exchange.lessons.find(lesson => !lesson.done);
+  if (!next) return "查看课程记录";
+  if (new Date(next.at).getTime() + 45 * 60_000 < Date.now()) return `待补充课程记录：${timeText(next.at)}`;
+  return `下一节${next.teacher === "me" ? "我来教" : "我来学"}：${timeText(next.at)}`;
+}
 function exchanges() {
   const groups = {
     全部: () => true,
@@ -803,6 +818,7 @@ function exchanges() {
             /* HTML */ `<button
               data-action="exchange-tab"
               data-value="${t}"
+              aria-pressed="${exchangeTab === t}"
               class="${exchangeTab === t ? "selected" : ""}"
             >
               ${t}<span>${state.exchanges.filter(groups[t]).length}</span>
@@ -815,12 +831,13 @@ function exchanges() {
           ${list
             .map(
               (e) =>
-                /* HTML */ `<a class="exchange-row" href="#/exchange/${e.id}"
+                /* HTML */ `<a class="exchange-row" data-status="${e.status}" href="#/exchange/${e.id}"
                   ><div class="person-line">
                     ${avatar(PEOPLE.find((p) => p.id === e.personId))}
                     <div>
                       <strong>与${escape(e.personName)}的交换</strong
                       ><span>${escape(e.teach)}${" ⇄ "}${escape(e.learn)}</span>
+                      <small class="exchange-next">${exchangeNextStep(e)}</small>
                     </div>
                   </div>
                   <div class="row-progress">
@@ -1046,6 +1063,11 @@ function profile() {
           <p>遇到想认识的伙伴，先收藏起来。</p>
           <a class="text-btn" href="#/discover">去发现技能${icon("arrow")}</a>
         </div>`}
+    <details class="display-preferences">
+      <summary>显示偏好${icon("chevron")}</summary>
+      <label><input type="checkbox" data-reduce-motion aria-describedby="motion-preference-note" />减少动态效果</label>
+      <p id="motion-preference-note">关闭卡片倾斜、浮动与过渡动画。系统的减少动态效果设置优先。</p>
+    </details>
     <section class="demo-settings">
       <div>
         <strong>关于这个演示</strong>
