@@ -18,7 +18,8 @@ function harness(t, reduced = false) {
   const toggle = new EventTarget();
   const attributes = {};
   toggle.setAttribute = (name, value) => { attributes[name] = value; };
-  root.querySelector = () => toggle;
+  root.querySelector = selector => selector === '[data-motion-toggle]' ? toggle : null;
+  root.querySelectorAll = () => [];
   const properties = new Map();
   const card = { classList: { add() {}, remove() {} }, style: {
     setProperty: (k,v) => properties.set(k,v), removeProperty: k => properties.delete(k),
@@ -67,4 +68,34 @@ test('system reduced motion disables tilt and the optional toggle', t => {
   h.move(); h.runFrame();
   assert.equal(h.properties.size, 0);
   dispose();
+});
+
+test('ambient motion pauses offscreen, in background and on cleanup', t => {
+  const h = harness(t);
+  const hero = { dataset: {} };
+  h.root.querySelector = selector => selector === '.discovery-intro' ? hero : h.toggle;
+  const observers = [];
+  class Observer {
+    constructor(callback) { this.callback = callback; this.disconnected = false; observers.push(this); }
+    observe() {}
+    disconnect() { this.disconnected = true; }
+  }
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'IntersectionObserver');
+  Object.defineProperty(globalThis, 'IntersectionObserver', { configurable: true, value: Observer });
+  t.after(() => original ? Object.defineProperty(globalThis, 'IntersectionObserver', original) : delete globalThis.IntersectionObserver);
+  window.IntersectionObserver = Observer;
+  const dispose = mountMotion(h.root);
+  assert.equal(hero.dataset.ambient, 'false');
+  observers[0].callback([{ isIntersecting: true }]);
+  assert.equal(hero.dataset.ambient, 'true');
+  h.doc.hidden = true;
+  h.doc.dispatchEvent(new Event('visibilitychange'));
+  assert.equal(hero.dataset.ambient, 'false');
+  h.doc.hidden = false;
+  h.doc.dispatchEvent(new Event('visibilitychange'));
+  assert.equal(hero.dataset.ambient, 'true');
+  observers[0].callback([{ isIntersecting: false }]);
+  assert.equal(hero.dataset.ambient, 'false');
+  dispose();
+  assert.ok(observers.every(observer => observer.disconnected));
 });
