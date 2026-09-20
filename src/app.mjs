@@ -1,3 +1,4 @@
+import { mountMotion } from "./motion.mjs";
 import { WORKSHOPS, workshopText } from "../data/workshops.mjs";
 import {
   PEOPLE,
@@ -223,8 +224,7 @@ function header() {
         /><button aria-label="搜索" type="submit">${icon("arrow")}</button>
       </form>
       <div class="top-actions">
-        <span class="demo-label">交互演示</span
-        ><a class="btn primary" href="#/publish" aria-label="发布技能"
+        <button type="button" class="motion-toggle" data-motion-toggle aria-label="页面动效" aria-pressed="true">动效 开</button><a class="btn primary" href="#/publish" aria-label="发布技能"
           >${icon("plus")}<span>发布技能</span></a
         >
       </div>
@@ -263,7 +263,7 @@ function card(p, why = false) {
     m = match(state.me, p),
     saved = state.favorites.includes(p.id);
   const [photo, photoDescription, photoPosition] = PARTNER_COVERS[p.id];
-  return /* HTML */ `<article class="skill-card">
+  return /* HTML */ `<article class="skill-card" data-scene="${p.id}">
     <a
       class="skill-cover"
       href="#/person/${p.id}"
@@ -330,7 +330,7 @@ function discover() {
           .includes(filter.q.toLowerCase())),
   );
   return /* HTML */ `<section class="discovery-intro">
-      <div class="intro-heading"><h1>用你会的，换你想学的。</h1><a class="btn dark" href="#/matches">${state.me.active ? `查看${matches(state.me, PEOPLE).length}位匹配` : "查看匹配"}${icon("arrow")}</a></div>
+      <div class="intro-heading"><div class="exchange-sculpture" aria-hidden="true"><div class="sculpture-shadow"></div><div class="sculpture-stage"><span class="glass-tile back">${icon("leaf")}</span><span class="glass-tile front">${icon("match")}</span></div></div><h1>用你会的，换你想学的。</h1><a class="btn dark" href="#/matches">${state.me.active ? `查看${matches(state.me, PEOPLE).length}位匹配` : "查看匹配"}${icon("arrow")}</a></div>
       <div class="intro-skills"><span>我能教<strong>${escape(state.me.teach.join("、"))}</strong></span>${icon("match")}<span>我想学<strong>${escape(state.me.want.join("、"))}</strong></span><a class="text-btn" href="#/publish" aria-label="编辑我的供需">编辑${icon("edit")}</a></div>
       <details class="intro-help"><summary>如何体验一次技能交换</summary><div class="guide-steps"><div><strong>1.看看谁和你互补</strong><p>默认身份小麦能教摄影、想学Python。在我的匹配中，林予安与你技能互补且有共同时间。</p><a class="text-btn" href="#/person/lin">查看这位伙伴${icon("arrow")}</a></div><div><strong>2.约定两节课</strong><p>查看课程安排，发送邀请后点击模拟对方接受。两节课分别记录你教什么、你学什么。</p></div><div><strong>3.记录学到的东西</strong><p>分别模拟完成两节课，写下收获并评价。也可以修改自己的供需，看看匹配结果如何变化。</p></div></div><p class="guide-note">人物、经历和评价均为示例，卡片场景图由AI生成。操作只保存在当前浏览器，不会联系真实用户。</p></details>
     </section>
@@ -1056,7 +1056,9 @@ function profile() {
       <button class="btn secondary" data-action="reset">重置演示</button>
     </section>`;
 }
+let disposeMotion = () => {};
 function render() {
+  disposeMotion();
   const focused = document.activeElement;
   const focusSelector = focused?.id
     ? `#${CSS.escape(focused.id)}`
@@ -1114,6 +1116,7 @@ function render() {
         ><span>技能互换产品演示</span>
       </footer>
     </main>`;
+  disposeMotion = mountMotion(app);
   if (focusSelector)
     document.querySelector(focusSelector)?.focus({ preventScroll: true });
   document.title = `${{ discover: "发现技能", matches: "我的匹配", exchanges: "我的交换", profile: "我的", publish: "发布技能", person: "伙伴详情", invite: "发起交换", exchange: "交换详情" }[part] || "技能互换"} · SkillPal`;
