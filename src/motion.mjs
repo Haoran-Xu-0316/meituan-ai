@@ -1,5 +1,6 @@
 // Motion is progressive enhancement: content and controls work without it.
 const seenCards = new Set();
+let previousCardSet = "";
 const preferenceKey = 'skillpal-motion';
 let userEnabled = true;
 try { userEnabled = localStorage.getItem(preferenceKey) !== 'off'; } catch {}
@@ -18,6 +19,15 @@ export function mountMotion(root) {
   const fine = matchMedia('(hover: hover) and (pointer: fine)');
   const toggle = root.querySelector('[data-motion-toggle]');
   const animations = new Set();
+  const hero = root.querySelector('.discovery-intro');
+  const cards = [...root.querySelectorAll('.skill-card')];
+  const cardSet = cards.map(card => card.dataset.scene).join(',');
+  const changedCollection = cardSet !== previousCardSet;
+  previousCardSet = cardSet;
+  let heroVisible = false, ambientObserver;
+  const updateAmbient = () => {
+    if (hero) hero.dataset.ambient = String(enabled() && heroVisible && !document.hidden);
+  };
   let observer, frame = 0, active = null, pending = null;
   const enabled = () => userEnabled && !reduce.matches;
   const reset = () => {
@@ -39,6 +49,7 @@ export function mountMotion(root) {
   const sync = () => {
     reset();
     observer?.disconnect();
+    ambientObserver?.disconnect();
     animations.forEach(a => a.cancel());
     animations.clear();
     document.documentElement.dataset.motion = enabled() ? 'on' : 'off';
@@ -48,20 +59,28 @@ export function mountMotion(root) {
       toggle.disabled = reduce.matches;
       toggle.title = reduce.matches ? '已跟随系统减少动态效果设置' : '切换页面动态效果';
     }
+    updateAmbient();
     if (!enabled() || !('IntersectionObserver' in window)) return;
+    if (hero) {
+      ambientObserver = new IntersectionObserver(entries => {
+        heroVisible = entries[0].isIntersecting;
+        updateAmbient();
+      }, { threshold: 0.1 });
+      ambientObserver.observe(hero);
+    }
     observer = new IntersectionObserver(entries => {
-      entries.forEach(entry => {
+      entries.forEach((entry, index) => {
         if (!entry.isIntersecting) return;
         const card = entry.target;
         observer.unobserve(card);
-        if (seenCards.has(card.dataset.scene)) return;
+        if (!changedCollection && seenCards.has(card.dataset.scene)) return;
         seenCards.add(card.dataset.scene);
-        animate(card, [{ opacity: 0.3, translate: '0 16px' }, { opacity: 1, translate: '0 0' }], {
-          duration: 420, easing: 'cubic-bezier(.2,.8,.2,1)',
+        animate(card, [{ opacity: 0.2, translate: '0 24px', scale: '0.97' }, { opacity: 1, translate: '0 0', scale: '1' }], {
+          duration: 520, delay: Math.min(index, 3) * 55, fill: 'backwards', easing: 'cubic-bezier(.16,1,.3,1)',
         });
       });
     }, { threshold: 0.08 });
-    root.querySelectorAll('.skill-card').forEach(card => observer.observe(card));
+    cards.forEach(card => observer.observe(card));
   };
   toggle?.addEventListener('click', () => {
     userEnabled = !userEnabled;
@@ -91,7 +110,7 @@ export function mountMotion(root) {
   }, { signal, passive: true });
   window.addEventListener('blur', reset, { signal });
   window.addEventListener('scroll', reset, { signal, passive: true });
-  document.addEventListener('visibilitychange', reset, { signal });
+  document.addEventListener('visibilitychange', () => { reset(); updateAmbient(); }, { signal });
   reduce.addEventListener('change', sync, { signal });
   fine.addEventListener('change', reset, { signal });
   sync();
@@ -99,6 +118,8 @@ export function mountMotion(root) {
     reset();
     observer?.disconnect();
     animations.forEach(a => a.cancel());
+    ambientObserver?.disconnect();
+    if (hero) hero.dataset.ambient = "false";
     controller.abort();
   };
 }
