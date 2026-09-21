@@ -52,7 +52,7 @@ The visual direction references the pointer-responsive material and depth of Thr
 - Cards tilt at most 4.5 degrees per axis, with a small counter-moving photograph parallax. Reflection, elevation and shadow respond to the pointer, while touch devices retain normal scrolling and press feedback.
 - Cards enter in a short stagger when the visible partner collection changes; favorite updates do not replay the entire grid. New cards still reveal as they enter the viewport, and content remains visible if animation APIs are unavailable.
 - The header contains only search and publishing. The optional reduce-motion checkbox lives under the profile display preferences, persists separately from learning records, and respects the system setting.
-- Matching uses a graphite supply-and-demand strip with a yellow exchange symbol; exchanges show status-derived next steps, rounded filter tabs and a connected lesson timeline. Profile skill panels distinguish teaching from learning. Page headings enter briefly on route changes, without moving forms or replaying on field edits.
+- Matching uses an unboxed pair of skill groups on a white summary surface with a yellow exchange symbol; exchanges show status-derived next steps, rounded filter tabs and a connected lesson timeline. Profile skill panels distinguish teaching from learning. Page headings enter briefly on route changes, without moving forms or replaying on field edits.
 - Each render disposes observers, animation frames and listeners. Hidden tabs and scrolling clear transient pointer state.
 - Glass surfaces have opaque fallbacks; navigation, focus outlines and publishing remain usable on narrow screens.
 
@@ -87,12 +87,3 @@ The discovery grid ranks reciprocal matches first and displays what each side te
 A partially fulfilled exchange cannot silently terminate through cancellation: it becomes pending rescheduling, stays in the ongoing list, releases paused time reservations and preserves completed lessons. The rescheduling dialog changes only unfinished lessons, checks future dates and booking conflicts, and explicitly simulates both parties agreeing. Untouched exchanges can still be cancelled normally.
 
 Each lesson carries its original goal through completion. Participants record whether the goal was achieved or further help is needed, the concrete learning note and an optional HTTP(S) artifact link. Completing two sessions and achieving both goals are separate states; unmet goals remain visible after evaluation. Existing saved lessons remain compatible.
-
-
-## Reciprocal offer composition
-
-匹配页采用全宽横向交换卡，避免少量候选在三列网格中留下大片空白。左侧使用伙伴独有的课程照片，叠加磨砂玻璃双向技能面板；右侧依次呈现身份、具体课程成果、对方的学习目标、共同常用时段与教学形式。匹配原因按需展开。首位沿用现有匹配排序，用黄色主按钮突出；不虚构匹配分数、认证或成交数据。移动端自然转为照片在上的单列结构。
-
-公共搜索栏采用半透明白色、背景模糊和内侧高光，聚焦时背景变实、提交箭头变黄。正文卡片保持清晰实底，玻璃只用于浮于照片或内容之上的操作层。详情页顶部复用同一课程照片与技能标题，保持从匹配到课程的视觉连续性。照片均保留AI场景标识。
-
-大面积匹配卡的指针倾斜限制为约1度，沿用现有可中断页面过渡、折叠展开动画和滑动导航。收藏保留卡片身份，不重播整个列表；系统与用户减少动态设置继续生效。
