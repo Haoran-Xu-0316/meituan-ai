@@ -171,6 +171,15 @@ export function matches(me, people) {
         a.person.id.localeCompare(b.person.id),
     );
 }
+// Existing agreements stay reachable even when either profile changes afterward.
+export function partnerAction(state, person) {
+  const labels = { pending: "查看邀请", scheduled: "继续交换", learning: "继续交换", rescheduling: "安排补课", review: "记录评价" };
+  const existing = state.exchanges.find(exchange => exchange.personId === person.id && Object.hasOwn(labels, exchange.status));
+  if (existing) return { path: `/exchange/${existing.id}`, label: labels[existing.status] };
+  return match(state.me, person).eligible
+    ? { path: `/invite/${person.id}`, label: "发起交换" }
+    : { path: `/publish?return=${person.id}`, label: "调整供需后交换" };
+}
 export function validatePost(p) {
   for (const key of ["teach", "want"])
     if (
