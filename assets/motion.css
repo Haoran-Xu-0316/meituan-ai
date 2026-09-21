@@ -361,3 +361,13 @@ main { overflow-anchor: none; }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .topbar, .search, .match-glass { background: #fff; }
 }
+
+/* Interaction polish leaves the approved geometry unchanged. */
+summary:focus-visible { outline: 3px solid #8b7100; outline-offset: 4px; border-radius: 5px; }
+.match-card:has(:focus-visible) { box-shadow: 0 0 0 2px #b39a35, var(--surface-shadow); }
+.favorite { width: 40px; height: 40px; }
+.favorite::before { content: ''; position: absolute; inset: -2px; border-radius: 50%; }
+html[data-motion="on"] .favorite.saved .icon { animation: favorite-confirm .32s cubic-bezier(.16,1,.3,1); }
+@keyframes favorite-confirm { 0% { transform: scale(.8); } 55% { transform: scale(1.22); } 100% { transform: scale(1); } }
+.match-glass { box-shadow: inset 0 1px 0 #fff, inset 0 -1px 0 #ffffff75, 0 8px 24px #10130d1a; }
+#discover-title { scroll-margin-top: 96px; }
