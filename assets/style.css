@@ -157,11 +157,12 @@ a .icon {
 }
 .brand-word {
   color: #24271f;
-  font-weight: 850;
-  letter-spacing: -1.15px;
+  font-weight: 800;
+  letter-spacing: -1px;
   line-height: 1;
 }
 .brand-word > span { font-weight: 650; }
+.brand .brand-symbol { width: 36px; height: 36px; }
 .nav-caption {
   font-size: 11px;
   color: var(--muted);
