@@ -2545,3 +2545,25 @@ fieldset:has([aria-invalid="true"]) {
 .conversation-prompts .btn:disabled { opacity: 0.5; cursor: default; }
 
 .messages .message { scroll-margin-top: 100px; scroll-margin-bottom: 110px; }
+
+/* Match evidence and reciprocal fulfilment stay close to the relevant action. */
+.match-gap { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin: 28px 0 20px; }
+.match-gap p { color: var(--muted); font-size: 12px; line-height: 1.7; margin-top: 6px; }
+.match-gap > a { flex-shrink: 0; font-size: 12px; padding-top: 6px; }
+.exchange-followup { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px 24px; margin-bottom: 22px; border-radius: 12px; background: var(--yellow-soft); }
+.exchange-followup strong { font-size: 15px; }
+.exchange-followup p { color: #66551c; font-size: 13px; line-height: 1.7; margin-top: 6px; }
+.exchange-followup .btn { flex-shrink: 0; }
+.status-rescheduling { background: #fff0ce; color: #79551b; }
+.lesson-goal span { display: block; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+.workshop { scroll-margin-top: 100px; }
+.lesson-material { display: flex; width: fit-content; font-size: 12px; margin: 12px 0; }
+.outcome-label { display: inline-block; font-size: 12px; padding: 4px 8px; border-radius: 5px; margin: 10px 0 0; }
+.outcome-label.achieved { background: #e7f3eb; color: #347449; }
+.outcome-label.needs-help { background: #fff0ce; color: #79551b; }
+.dialog-goal { padding: 12px 0 18px; color: var(--muted); line-height: 1.7; }
+.exchange-aside > .btn + .text-btn { display: block; margin-top: 18px; }
+@media (max-width: 650px) {
+  .exchange-followup { align-items: flex-start; flex-direction: column; gap: 14px; padding: 18px; }
+  .exchange-followup .btn { align-self: flex-end; }
+}
