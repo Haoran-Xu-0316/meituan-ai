@@ -11,6 +11,7 @@ export const STATUS = {
   pending: "待回应",
   scheduled: "已约定",
   learning: "交换中",
+  rescheduling: "待协商补课",
   review: "待评价",
   completed: "已完成",
   declined: "已拒绝",
@@ -92,7 +93,9 @@ function validateSavedState(s) {
         (l) =>
           !Number.isFinite(Date.parse(l.at)) ||
           typeof l.done !== "boolean" ||
-          typeof l.goal !== "string",
+          typeof l.goal !== "string" ||
+          (l.goalStatus !== undefined && !["achieved", "needs-help"].includes(l.goalStatus)) ||
+          (l.artifact !== undefined && artifactUrl(l.artifact) !== l.artifact),
       ) ||
       e.messages.some(
         (m) => typeof m.text !== "string" || !Number.isFinite(Date.parse(m.at)),
@@ -212,7 +215,7 @@ export const overlaps = (a, b) =>
   Math.abs(new Date(a) - new Date(b)) < 45 * 60000;
 const isOpenExchange = (e) => !["cancelled", "declined", "completed"].includes(e.status);
 export function availableLessonTimes(state, slots, now = new Date()) {
-  const reserved = state.exchanges.filter(isOpenExchange).flatMap((e) => e.lessons.filter((l) => !l.done));
+  const reserved = state.exchanges.filter((e) => isOpenExchange(e) && e.status !== "rescheduling").flatMap((e) => e.lessons.filter((l) => !l.done));
   const selected = [];
   for (const at of upcoming(slots, now)) {
     if (reserved.some((l) => overlaps(at, l.at)) || selected.some((other) => overlaps(at, other))) continue;
@@ -256,7 +259,7 @@ export function createExchange(state, p, input, now = new Date()) {
   if (new Date(times[1]) < new Date(times[0])) throw Error("第二节课应安排在第一节课之后。");
   if (
     state.exchanges
-      .filter((e) => !["cancelled", "declined", "completed"].includes(e.status))
+      .filter((e) => !["cancelled", "declined", "completed", "rescheduling"].includes(e.status))
       .some((e) =>
         e.lessons.some((l) => !l.done && times.some((t) => overlaps(t, l.at))),
       )
@@ -288,6 +291,36 @@ export function createExchange(state, p, input, now = new Date()) {
   };
   state.exchanges.unshift(e);
   return e;
+}
+// Only explicit web URLs can become clickable learning artifacts.
+export function artifactUrl(value) {
+  const text = String(value).trim();
+  if (!text) return "";
+  if (text.length > 1000) throw Error("作品链接过长。");
+  let url;
+  try { url = new URL(text); } catch { throw Error("作品链接需以https://或http://开头。"); }
+  if (!["https:", "http:"].includes(url.protocol) || url.username || url.password)
+    throw Error("请填写不含账号密码的http或https作品链接。");
+  return url.href;
+}
+export function rescheduleExchange(state, exchange, times, now = new Date()) {
+  if (!["scheduled", "learning", "rescheduling"].includes(exchange.status))
+    throw Error("当前交换不能改期。");
+  const remaining = exchange.lessons.filter((l) => !l.done);
+  if (!Array.isArray(times) || times.length !== remaining.length || times.some((t) =>
+    !Number.isFinite(Date.parse(t)) || new Date(t) <= now || new Date(t) > new Date(now.getTime() + 14 * 86400000)))
+    throw Error("请选择未来14天内的课程时间。");
+  let index = 0;
+  const proposed = exchange.lessons.map((l) => l.done ? l.at : times[index++]);
+  if (remaining.length === 2 && (overlaps(proposed[0], proposed[1]) || new Date(proposed[1]) < new Date(proposed[0])))
+    throw Error("两节课需按顺序安排，且相隔至少45分钟。");
+  const conflict = state.exchanges.filter((e) => e.id !== exchange.id && isOpenExchange(e) && e.status !== "rescheduling")
+    .some((e) => e.lessons.some((l) => !l.done && times.some((t) => overlaps(t, l.at))));
+  if (conflict) throw Error("这个时间已有其他交换安排，请换一个时段。");
+  remaining.forEach((l, i) => { l.at = times[i]; });
+  exchange.status = exchange.lessons.some((l) => l.done) ? "learning" : "scheduled";
+  exchange.messages.push({ by: "partner", text: "已模拟双方确认新的课程时间，已完成的分享与成果保持不变。", demo: true, at: now.toISOString() });
+  delete exchange.reason;
 }
 export const DEMO_QUESTIONS = {
   preparation: "我要准备什么？",
@@ -328,13 +361,20 @@ export function transition(e, action, payload = {}) {
     if (["completed", "declined", "cancelled"].includes(e.status))
       throw Error("这次交换已经结束。");
     if (!payload.reason?.trim()) throw Error("请填写取消原因。");
-    e.status = "cancelled";
+    if (e.status === "review") throw Error("课程已完成，请记录评价。");
+    e.status = e.lessons.some((l) => l.done) ? "rescheduling" : "cancelled";
     e.reason = payload.reason.trim().slice(0, 200);
   } else if (action === "completeLesson") {
     if (!["scheduled", "learning"].includes(e.status))
       throw Error("请先确认交换安排。");
     const lesson = e.lessons[payload.index];
     if (!lesson || lesson.done) throw Error("这节课程已经完成或不存在。");
+    const goalStatus = payload.goalStatus || "achieved";
+    if (!["achieved", "needs-help"].includes(goalStatus)) throw Error("请选择目标完成情况。");
+    if (goalStatus === "needs-help" && !payload.reflection?.trim()) throw Error("请写下还需要帮助的内容。");
+    const artifact = artifactUrl(payload.artifact || "");
+    lesson.goalStatus = goalStatus;
+    lesson.artifact = artifact;
     lesson.done = true;
     lesson.reflection = (payload.reflection || "").slice(0, 200);
     lesson.completedAt = new Date().toISOString();
