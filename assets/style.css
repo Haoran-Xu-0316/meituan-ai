@@ -1,10 +1,10 @@
 :root {
   --yellow: #ffd100;
   --yellow-soft: #fff8d6;
-  --ink: #222;
+  --ink: #24271f;
   --muted: #666873;
-  --line: #e9eaed;
-  --bg: #f7f8fa;
+  --line: #e5e6e0;
+  --bg: #f6f6f2;
   --white: #fff;
   --radius: 16px;
   --shadow: 0 12px 38px #22222218;
@@ -146,7 +146,7 @@ a .icon {
   gap: 8px;
   font-size: 27px;
   font-weight: 850;
-  letter-spacing: -1.1px;
+  letter-spacing: -0.035em;
   padding: 0 8px;
 }
 .brand-symbol {
@@ -157,8 +157,8 @@ a .icon {
 }
 .brand-word {
   color: #24271f;
-  font-weight: 780;
-  letter-spacing: -0.85px;
+  font-weight: 750;
+  letter-spacing: -0.035em;
   line-height: 1;
 }
 .brand-word > span { font-weight: 680; }
@@ -518,7 +518,7 @@ input[type="radio"] {
   display: flex;
   position: relative;
   align-items: flex-end;
-  height: 188px;
+  height: 218px;
   background: var(--cover);
   color: #fff;
   padding: 14px 16px;
@@ -545,26 +545,32 @@ input[type="radio"] {
   line-height: 1.4;
   letter-spacing: 0.2px;
 }
+.skill-cover::after {
+  content: "";
+  position: absolute;
+  inset: 35% 0 0;
+  z-index: -1;
+  background: linear-gradient(transparent, #151912b8);
+  pointer-events: none;
+}
 .cover-copy {
   display: inline-flex;
   max-width: 100%;
-  background: #fffffff2;
-  color: var(--ink);
-  padding: 7px 11px;
-  border-radius: 7px;
-  box-shadow: 0 2px 8px #0000000a;
+  color: #fff;
+  padding: 0 2px 2px;
 }
 .cover-copy strong {
-  font-size: 16px;
-  line-height: 1.25;
-  font-weight: 700;
+  font-size: 25px;
+  line-height: 1.2;
+  font-weight: 650;
+  letter-spacing: -.025em;
 }
 .card-title {
   font-size: 17px;
   font-weight: 650;
   line-height: 1.5;
   min-height: 3em;
-  margin: 0 0 16px;
+  margin: 0 0 18px;
   letter-spacing: -0.3px;
 }
 .card-title a {
@@ -605,7 +611,7 @@ input[type="radio"] {
   fill: #f2dce2;
 }
 .card-body {
-  padding: 18px 20px 0;
+  padding: 21px 22px 0;
 }
 .person-line {
   display: flex;
@@ -661,7 +667,7 @@ input[type="radio"] {
 .skill-row p {
   font-size: 12px;
   line-height: 1.75;
-  min-height: 42px;
+  min-height: 24px;
 }
 .skill-row.wanted {
   margin-top: 16px;
@@ -1699,7 +1705,7 @@ dialog .full {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .card-body {
-    padding: 18px 20px 0;
+    padding: 21px 22px 0;
   }
   .detail-layout {
     grid-template-columns: 1fr;
@@ -1733,7 +1739,7 @@ dialog .full {
     white-space: nowrap;
   }
   .mobile-brand .brand-symbol { width: 32px; height: 32px; }
-  .mobile-brand .brand-word { letter-spacing: -0.85px; }
+  .mobile-brand .brand-word { letter-spacing: -0.035em; }
   .search {
     width: auto;
     flex: 1;
@@ -2431,11 +2437,6 @@ fieldset:has([aria-invalid="true"]) {
 .intro-heading { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
 .intro-heading h1 { font-size: 29px; line-height: 1.35; }
 .intro-heading .btn { flex-shrink: 0; }
-.intro-skills { display: flex; align-items: center; gap: 20px; margin-top: 19px; }
-.intro-skills > span { color: #60510d; font-size: 12px; }
-.intro-skills strong { color: var(--ink); margin-left: 10px; font-size: 14px; }
-.intro-skills > .icon { width: 18px; color: #7b6817; flex-shrink: 0; }
-.intro-skills > a { margin-left: auto; font-size: 12px; }
 .intro-help { margin-top: 15px; border-top: 1px solid #22222218; padding-top: 11px; }
 .intro-help > summary { cursor: pointer; color: #5e500c; font-size: 12px; width: fit-content; }
 .intro-help .guide-steps { padding: 18px 0 0; }
@@ -2481,10 +2482,6 @@ fieldset:has([aria-invalid="true"]) {
   .intro-heading { display: block; }
   .intro-heading h1 { font-size: 23px; }
   .intro-heading .btn { margin-top: 15px; font-size: 12px; padding: 9px 12px; }
-  .intro-skills { gap: 12px; flex-wrap: wrap; margin-top: 16px; }
-  .intro-skills > span { font-size: 11px; max-width: calc(50% - 22px); }
-  .intro-skills strong { display: block; margin: 3px 0 0; font-size: 13px; overflow-wrap: anywhere; }
-  .intro-skills > a { margin-left: auto; }
   .intro-help { margin-top: 12px; }
   .intro-help .guide-steps { gap: 15px; }
   .partner-header { margin-bottom: 19px; gap: 10px; }
