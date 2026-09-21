@@ -103,7 +103,7 @@ test("conflicting reservations with another partner are rejected", () => {
 test("exchange enforces accept, two lessons, then one review", () => {
   const { e } = scenario();
   assert.throws(() => transition(e, "completeLesson", { index: 0 }));
-  transition(e, "accept");
+  transition(e, "accept", {}, now);
   assert.equal(e.status, "scheduled");
   transition(e, "completeLesson", { index: 0 });
   assert.equal(e.status, "learning");
@@ -123,7 +123,7 @@ test("exchange enforces accept, two lessons, then one review", () => {
 });
 test("pausing a partial exchange preserves completed work and needs a reason", () => {
   const { e } = scenario();
-  transition(e, "accept");
+  transition(e, "accept", {}, now);
   transition(e, "completeLesson", { index: 0, reflection: "构图练习" });
   assert.throws(() => transition(e, "cancel", { reason: " " }));
   transition(e, "cancel", { reason: "时间变化" });
@@ -136,7 +136,7 @@ test("decline is terminal and frees a new invitation", () => {
   const { s, e } = scenario();
   transition(e, "decline");
   assert.equal(e.status, "declined");
-  assert.throws(() => transition(e, "accept"));
+  assert.throws(() => transition(e, "accept", {}, now));
   assert.doesNotThrow(() => createExchange(s, partner, input(), now));
 });
 test("paused or incompatible skills cannot invite", () => {
