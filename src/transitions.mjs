@@ -185,3 +185,21 @@ export function nameSceneElements(root) {
     card.style.viewTransitionName = `skill-${card.dataset.scene}`;
   });
 }
+
+
+// Reading state belongs to the route, not to a render or an individual button.
+const disclosureKey = details => {
+  const card = details.closest('[data-scene]')?.dataset.scene || 'page';
+  return card + ':' + (details.querySelector('summary')?.textContent || '').trim();
+};
+export function captureReadingState(root, scrollY) {
+  return {
+    scrollY: Math.max(0, scrollY || 0),
+    disclosures: [...root.querySelectorAll('details[open]')].map(disclosureKey),
+  };
+}
+export function restoreReadingState(root, state) {
+  if (!state) return;
+  const open = new Set(state.disclosures);
+  root.querySelectorAll('details').forEach(details => { details.open = open.has(disclosureKey(details)); });
+}
