@@ -220,7 +220,7 @@ function header() {
         ${icon("search")}<input
           name="q"
           aria-label="搜索技能或学习目标"
-          placeholder="搜索你想学的技能"
+          placeholder="搜一搜，你想学什么？"
           value="${escape(filter.q)}"
         /><button aria-label="搜索" type="submit">${icon("arrow")}</button>
       </form>
@@ -289,7 +289,7 @@ function card(p, why = false) {
         <div>
           <strong>${escape(p.name)}</strong><span>${escape(p.job)}</span>
         </div>
-        <span class="sample">演示</span>
+        <span class="sample">示例</span>
       </div>
       <div class="skill-row wanted">
         <span class="role want">想学</span>
@@ -298,7 +298,10 @@ function card(p, why = false) {
       ${m.eligible
         ? /* HTML */ `<div class="match-reasons">
             ${icon("check")}<span
-              >双向互补${m.slots.length ? `，共同常用时段${escape(slotLabel(m.slots[0]))}` : "，时间待协商"}${m.fit === 2 ? "" : "，需确认教学难度"}</span
+              >你教${escape(m.teach.join("、"))}，向TA学${escape(m.learn.join("、"))}${m
+                .slots.length
+                ? `；共同常用时段：${escape(slotLabel(m.slots[0]))}`
+                : "，时间待协商"}${m.fit === 2 ? "；双方基础合适" : "；需确认教学难度"}</span
             >
           </div>`
         : ""}
@@ -429,43 +432,68 @@ function discover() {
 
     </section>`;
 }
-function matchCard(m, featured = false) {
-  const p = m.person;
-  const [photo, description, position] = PARTNER_COVERS[p.id];
-  const saved = state.favorites.includes(p.id);
-  const time = m.slots.length ? "共同常用：" + m.slots.map(slotLabel).join("、") : "时间待协商";
-  return `<article class="skill-card match-card ${featured ? "match-featured" : ""}" data-scene="${p.id}">
-    <div class="match-visual">
-      <a class="match-photo-link" href="#/person/${p.id}" aria-label="查看${escape(p.name)}的课程"><img class="cover-photo" src="assets/photos/${photo}.webp" alt="AI生成场景：${description}" style="--photo-position:${position}" width="1536" height="1024" loading="${featured ? "eager" : "lazy"}" /></a>
-      <span class="photo-label">AI场景</span>
-      <button class="favorite ${saved ? "saved" : ""}" data-action="favorite" data-id="${p.id}" aria-label="${saved ? "取消收藏" : "收藏"}${escape(p.name)}" aria-pressed="${saved}">${icon("heart")}</button>
-      <div class="match-glass"><div><span>你来分享</span><strong>${escape(m.teach.join("、"))}</strong></div>${icon("match")}<div><span>TA来分享</span><strong>${escape(m.learn.join("、"))}</strong></div></div>
-    </div>
-    <div class="match-content">
-      <div class="person-line">${avatar(p)}<div><strong>${escape(p.name)}</strong><span>${escape(p.job)}</span></div><span class="sample">演示伙伴</span></div>
-      <h2><a href="#/person/${p.id}">${escape(p.goal)}</a></h2>
-      <p class="match-reciprocal">你也能帮TA：${escape(p.learnGoal)}</p>
-      <div class="match-facts"><span class="match-availability ${m.slots.length ? "available" : ""}">${icon("clock")}${escape(time)}</span><span>${escape(m.formats[0])}，每人45分钟</span></div>
-      <details class="match-explanation"><summary>为什么适合彼此${icon("chevron")}</summary><p>你教${escape(m.teach.join("、"))}，向TA学${escape(m.learn.join("、"))}。${m.fit === 2 ? "双方基础符合教学要求。" : "开始前需要确认教学难度。"}${m.slots.length ? "有共同常用时段，具体日期以邀请确认为准。" : "技能互补，具体时间需要再协商。"}</p></details>
-      <div class="match-actions"><a class="btn ${featured ? "primary" : "dark"}" href="#/invite/${p.id}">发起交换${icon("arrow")}</a><a class="text-btn" href="#/person/${p.id}">查看课程</a></div>
-    </div>
-  </article>`;
-}
 function matching() {
   const candidates = PEOPLE.filter((p) => p.active && match(state.me, p).learn.length).slice(0, 3);
-  const list = matches(state.me, PEOPLE);
-  return `<section class="matching-page">
-    <div class="page-heading matching-heading"><div><h1>找到彼此的<span>拿手好戏。</span></h1><p>${state.me.active ? `我的匹配，${list.length}位双向技能伙伴` : "技能已暂停，重新发布后查看匹配"}</p></div><a class="text-btn" href="#/publish">调整需求${icon("edit")}</a></div>
-    <div class="match-intent"><div><span>我能教</span><strong>${escape(state.me.teach.join("、"))}</strong></div><span class="intent-bridge">${icon("match")}</span><div><span>我想学</span><strong>${escape(state.me.want.join("、"))}</strong></div><span class="intent-note">各有所长，互相分享</span></div>
+  const list = matches(state.me, PEOPLE),
+    overlap = list.filter((m) => m.slots.length),
+    other = list.filter((m) => !m.slots.length);
+  return /* HTML */ `<div class="page-heading">
+
+      <h1>我的技能伙伴</h1>
+
+    </div>
+    <div class="match-summary">
+      <div>
+        <span>我能教</span><strong>${escape(state.me.teach.join("、"))}</strong>
+      </div>
+      ${icon("match")}
+      <div>
+        <span>我想学</span><strong>${escape(state.me.want.join("、"))}</strong>
+      </div>
+      <a class="btn secondary" href="#/publish">调整需求${icon("edit")}</a>
+    </div>
     ${!state.me.active
-      ? empty("你的技能已暂停", "重新发布后，我们会继续为你寻找互补伙伴。", "/publish", "重新发布")
+      ? empty(
+          "你的技能已暂停",
+          "重新发布后，我们会继续为你寻找互补伙伴。",
+          "/publish",
+          "重新发布",
+        )
       : !list.length
         ? candidates.length
           ? `<section class="match-gap"><div><h2>能教你，尚待互补</h2><p>暂时没有双向匹配。对照TA想学的内容，可以先收藏。</p></div><a class="text-btn" href="#/discover">浏览全部${icon("arrow")}</a></section><div class="card-grid">${candidates.map((p) => card(p)).join("")}</div>`
           : empty("暂时没有双向互补的伙伴", "保留真实需求，先看看其他技能。", "/discover", "浏览全部技能")
-        : `<div class="match-list">${list.map((m, i) => matchCard(m, i === 0)).join("")}</div>`}
-    <p class="match-disclaimer">${icon("info")}匹配依据双方技能、基础和常用时间，人物为演示数据。</p>
-  </section>`;
+        : `${
+            overlap.length
+              ? /* HTML */ `<div class="section-heading">
+                    <h2>
+                      技能互补，时间也刚好<span class="count-label"
+                        >${overlap.length}</span
+                      >
+                    </h2>
+                  </div>
+                  <div class="card-grid">
+                    ${overlap.map((m) => card(m.person, true)).join("")}
+                  </div>`
+              : ""
+          }${
+            other.length
+              ? /* HTML */ `<div class="section-heading spaced">
+                    <div>
+                      <h2>技能合拍，再约个时间</h2>
+                      <p>时间待协商。</p>
+                    </div>
+                  </div>
+                  <div class="card-grid">
+                    ${other.map((m) => card(m.person, true)).join("")}
+                  </div>`
+              : ""
+          }`}
+    <div class="notice">
+      ${icon(
+        "info",
+      )}匹配基于填写资料，人物为演示数据。
+    </div>`;
 }
 function materialBlock(block) {
   const heading = `<h4>${escape(block.title)}</h4>`;
@@ -511,9 +539,7 @@ function detail(p) {
   else reasons.push(`你教${m.teach.join("、")}，向TA学${m.learn.join("、")}。`);
   if (!m.formats.length) reasons.push("暂时没有共同教学形式。");
   if (m.fit !== 2) reasons.push("开始前请确认教学难度是否适合彼此。");
-  const [detailPhoto, detailDescription, detailPosition] = PARTNER_COVERS[p.id];
   return `${back()}
-    <div class="partner-panorama"><img src="assets/photos/${detailPhoto}.webp" alt="AI生成场景：${detailDescription}" style="object-position:${detailPosition}" width="1536" height="1024" /><span class="photo-label">AI场景</span><div><span>一起练习</span><strong>${escape(p.teach.join("、"))}</strong></div></div>
     <header class="partner-header">
       <div class="partner-identity">${avatar(p, "large")}<div><h1>${escape(p.name)}</h1><p>${escape(p.job)}<span class="sample">演示伙伴</span></p></div></div>
       <button class="btn secondary" data-action="favorite" data-id="${p.id}" aria-pressed="${state.favorites.includes(p.id)}">${icon("heart")}${state.favorites.includes(p.id) ? "已收藏" : "收藏"}</button>
