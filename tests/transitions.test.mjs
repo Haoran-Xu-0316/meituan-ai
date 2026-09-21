@@ -46,3 +46,36 @@ test('disclosure animation handles reversal and disposes pending work', async t 
   assert.equal(runs[2].cancelled, true);
   click(); assert.equal(runs.length, 3);
 });
+
+import { createSceneRenderer } from '../src/transitions.mjs';
+
+test('scene switching commits only the latest request and runs focus work after painting', async () => {
+  const calls = [], transitions = [];
+  const doc = { documentElement: { dataset: { motion: 'on' } }, querySelector: () => ({}),
+    startViewTransition(update) {
+      let finish;
+      const transition = { update, ready: Promise.resolve(), finished: new Promise(resolve => { finish = resolve; }), skipTransition() { this.skipped = true; finish(); }, finish: () => finish() };
+      transitions.push(transition); return transition;
+    },
+  };
+  const render = createSceneRenderer(doc, () => calls.push('paint'));
+  render(() => calls.push('stale-focus'));
+  render(() => calls.push('current-focus'));
+  assert.equal(transitions[0].skipped, true);
+  transitions[0].update(); transitions[1].update();
+  assert.deepEqual(calls, ['paint', 'current-focus']);
+  await Promise.resolve();
+  assert.equal(doc.documentElement.dataset.scenePhase, 'animating');
+  transitions[1].finish(); await Promise.resolve();
+  assert.equal(doc.documentElement.dataset.scenePhase, 'idle');
+});
+
+test('reduced motion and unsupported browsers paint synchronously', () => {
+  const doc = { documentElement: { dataset: { motion: 'off' } }, querySelector: () => ({}), startViewTransition() { throw new Error('must not animate'); } };
+  let count = 0;
+  const render = createSceneRenderer(doc, () => count++);
+  render(); assert.equal(count, 1);
+  doc.documentElement.dataset.motion = 'on'; delete doc.startViewTransition;
+  render(); assert.equal(count, 2);
+  assert.equal(doc.documentElement.dataset.sceneTransition, 'off');
+});
