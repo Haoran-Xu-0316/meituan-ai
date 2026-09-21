@@ -66,3 +66,10 @@ Reference: https://threeui.com/three-js/holographic-glitter-card
 - Page content fades in 300ms; form steps and exchange filters add a small directional entrance. Cards use a shorter 360ms reveal. Native disclosures animate height in 320ms and reverse from their current state.
 - Reduced motion cancels pending transitions. Route cleanup releases animation, click and resize observers. No animation delays a state update or blocks input.
 - Remove redundant page subtitles and compress the guide and status explanations; retain concrete lesson content and demo labels.
+
+
+## State-to-state component switching
+
+Supported browsers capture old and new component states through View Transitions. Cards retain a stable visual identity and interpolate position and size when filtering; removed cards fade out. Page content has coordinated exit and entry, and publishing panels interpolate their height while steps slide in the appropriate direction. Navigation and the hero remain separate stable layers.
+
+A revision-aware renderer skips superseded requests and restores scrolling or focus only after the current DOM commit. Native snapshot transitions suppress duplicate card entrances; older browsers retain the existing liquid and disclosure fallback. Reduced motion bypasses scene transitions.
