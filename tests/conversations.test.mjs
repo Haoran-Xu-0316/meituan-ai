@@ -40,10 +40,11 @@ test('duplicate and invalid questions do not add messages, and markers survive r
   assert.equal(saved.warning, undefined);
   assert.throws(() => askDemoQuestion(saved.state.exchanges[0], 'needs', now), /已有回复/);
 });
-test('acceptance is partner-specific and finished exchanges cannot simulate new replies', () => {
+test('acceptance reflects the agreed goals and finished exchanges cannot simulate new replies', () => {
   const { exchange } = scenario();
-  transition(exchange, 'accept');
-  assert.equal(exchange.messages.at(-1).text, partner.context.acceptNote);
+  transition(exchange, 'accept', {}, now);
+  assert.ok(exchange.messages.at(-1).text.includes(exchange.lessons[0].goal));
+  assert.ok(exchange.messages.at(-1).text.includes(exchange.lessons[1].goal));
   askDemoQuestion(exchange, 'scope', now);
   assert.ok(exchange.messages.at(-1).text.includes(exchange.lessons[1].goal));
   assert.ok(exchange.messages.at(-1).text.includes(partner.context.boundary));
