@@ -328,8 +328,21 @@ function discover() {
           .includes(filter.q.toLowerCase())),
   );
   return /* HTML */ `<section class="discovery-intro" data-profile-key="${escape(JSON.stringify([state.me.teach, state.me.want, state.me.active]))}">
-      <div class="intro-heading"><div class="exchange-sculpture" aria-hidden="true"><div class="sculpture-shadow"></div><div class="sculpture-stage"><div class="orbit-ring"><div class="orbit-track"><i></i></div></div><div class="orbit-ring secondary"><div class="orbit-track"><i></i></div></div><span class="sculpture-spark spark-one">+</span><span class="sculpture-spark spark-two">+</span><span class="glass-tile back">${icon("leaf")}</span><span class="glass-tile front">${icon("match")}</span></div></div><h1>用你会的，换你想学的。</h1><a class="btn dark" href="#/matches">${state.me.active ? `查看${matches(state.me, PEOPLE).length}位匹配` : "查看匹配"}${icon("arrow")}</a></div>
-      <div class="intro-skills"><span>我能教<strong>${escape(state.me.teach.join("、"))}</strong></span>${icon("match")}<span>我想学<strong>${escape(state.me.want.join("、"))}</strong></span><a class="text-btn" href="#/publish" aria-label="编辑我的供需">编辑${icon("edit")}</a></div>
+      <div class="intro-heading">
+        <div class="intro-copy">
+          <h1>用你会的，<br>换你<span class="intro-emphasis">想学的。</span></h1>
+          <div class="intro-actions"><a class="btn dark" href="#/matches">${state.me.active ? `查看${matches(state.me, PEOPLE).length}位匹配` : "查看匹配"}${icon("arrow")}</a><a class="text-btn" href="#/publish" aria-label="编辑我的供需">编辑供需${icon("edit")}</a></div>
+        </div>
+        <div class="exchange-sculpture">
+          <div class="sculpture-shadow" aria-hidden="true"></div>
+          <div class="sculpture-stage">
+            <div class="orbit-ring" aria-hidden="true"><div class="orbit-track"><i></i></div></div>
+            <div class="orbit-ring secondary" aria-hidden="true"><div class="orbit-track"><i></i></div></div>
+            <div class="glass-tile back${state.me.teach.length > 1 ? " multiple" : ""}"><span class="tile-role">我能教</span><strong>${escape(state.me.teach.join("、"))}</strong>${icon("leaf")}</div>
+            <div class="glass-tile front${state.me.want.length > 1 ? " multiple" : ""}"><span class="tile-role">我想学</span><strong>${escape(state.me.want.join("、"))}</strong>${icon("match")}</div>
+          </div>
+        </div>
+      </div>
       <details class="intro-help"><summary>体验流程</summary><div class="guide-steps"><div><strong>1.看看谁和你互补</strong><p>小麦教摄影，林予安教Python，双方时间匹配。</p><a class="text-btn" href="#/person/lin">查看这位伙伴${icon("arrow")}</a></div><div><strong>2.约定两节课</strong><p>发送邀请，模拟接受，约定两节课。</p></div><div><strong>3.记录学到的东西</strong><p>完成课程，记录收获，留下评价。</p></div></div><p class="guide-note">人物、经历和评价均为示例，卡片场景图由AI生成。操作只保存在当前浏览器，不会联系真实用户。</p></details>
     </section>
     <section aria-labelledby="discover-title">
