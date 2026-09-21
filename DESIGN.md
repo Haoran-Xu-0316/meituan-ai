@@ -77,4 +77,4 @@ A revision-aware renderer skips superseded requests and restores scrolling or fo
 
 ## Brand mark
 
-The SkillPal mark uses two rounded return arrows that form an open exchange loop. The graphite symbol sits on the Meituan-yellow rounded tile, with generous negative space for small-size readability. The wordmark pairs a heavier Skill with a lighter Pal. The sidebar, mobile header, footer and SVG favicon share assets/skillpal-mark.svg; the old generic exchange icon and decorative dot are removed from the brand lockup.
+The SkillPal mark is a custom S drawn as a continuous rounded ribbon with a diagonal seam. Its two complementary halves represent reciprocal skill sharing while the silhouette identifies SkillPal. The graphite symbol sits on a Meituan-yellow rounded tile and remains legible at favicon size. The wordmark uses a heavier Skill and lighter Pal. Sidebar, mobile header, footer and favicon share assets/skillpal-mark.svg. Desktop mark size is 36px, mobile 32px and footer 22px.
