@@ -149,27 +149,19 @@ a .icon {
   letter-spacing: -1.1px;
   padding: 0 8px;
 }
-.brand-mark {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: var(--yellow);
+.brand-symbol {
+  display: block;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
 }
-.brand-mark .icon {
-  width: 25px;
-  height: 25px;
-  stroke-width: 2.2;
+.brand-word {
+  color: #24271f;
+  font-weight: 850;
+  letter-spacing: -1.15px;
+  line-height: 1;
 }
-.brand-dot {
-  height: 6px;
-  width: 6px;
-  background: var(--yellow);
-  border-radius: 50%;
-  align-self: flex-end;
-  margin: 0 0 7px -6px;
-}
+.brand-word > span { font-weight: 650; }
 .nav-caption {
   font-size: 11px;
   color: var(--muted);
@@ -740,11 +732,16 @@ footer > span:last-child {
   margin-left: auto;
 }
 .footer-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 15px;
   font-weight: 800;
   letter-spacing: -0.5px;
   color: #45464d;
 }
+.footer-brand .brand-symbol { width: 22px; height: 22px; }
+.footer-brand .brand-word { letter-spacing: -0.6px; }
 .page-heading {
   margin: 7px 0 28px;
 }
@@ -1734,13 +1731,8 @@ dialog .full {
     letter-spacing: -0.8px;
     white-space: nowrap;
   }
-  .mobile-brand > .icon {
-    background: var(--yellow);
-    padding: 4px;
-    width: 29px;
-    height: 29px;
-    border-radius: 8px;
-  }
+  .mobile-brand .brand-symbol { width: 32px; height: 32px; }
+  .mobile-brand .brand-word { letter-spacing: -0.85px; }
   .search {
     width: auto;
     flex: 1;
@@ -2246,10 +2238,7 @@ dialog .full {
   .mobile-brand {
     font-size: 18px;
   }
-  .mobile-brand > .icon {
-    width: 25px;
-    height: 25px;
-  }
+  .mobile-brand .brand-symbol { width: 28px; height: 28px; }
   .filters select {
     max-width: 105px;
   }
