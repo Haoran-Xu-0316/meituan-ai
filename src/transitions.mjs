@@ -39,6 +39,7 @@ export function mountTransitions(root, snapshot = { groups: {} }) {
   const animations = new Set(), disclosures = new Map();
   const animate = (element, frames, options = {}) => {
     if (reduced() || !element.animate) return null;
+    if (document.documentElement.dataset.sceneTransition === 'on' && !element.classList?.contains('liquid-indicator')) return null;
     const animation = element.animate(frames, { duration: 440, easing, ...options });
     animations.add(animation);
     animation.finished.catch(() => {}).finally(() => animations.delete(animation));
@@ -127,4 +128,60 @@ export function mountTransitions(root, snapshot = { groups: {} }) {
     resizeObserver?.disconnect();
     stop();
   };
+}
+
+// Capture both UI states so existing cards move, departing content exits,
+// and the browser interpolates panel geometry instead of replacing it abruptly.
+export function createSceneRenderer(doc, paint) {
+  let active, revision = 0;
+  return (afterPaint) => {
+    const current = ++revision;
+    const previousKey = doc.querySelector('main')?.dataset?.transitionKey;
+    active?.skipTransition();
+    const update = () => {
+      if (current !== revision) return;
+      paint();
+      const nextKey = doc.querySelector('main')?.dataset?.transitionKey;
+      const backwards = previousKey?.startsWith('/publish:') && nextKey?.startsWith('/publish:') && Number(nextKey.split(':').at(-1)) < Number(previousKey.split(':').at(-1));
+      doc.documentElement.style?.setProperty('--panel-direction', backwards ? '-1' : '1');
+      afterPaint?.();
+    };
+    const finish = () => {
+      if (current !== revision) return;
+      doc.documentElement.dataset.sceneTransition = 'off';
+      doc.documentElement.dataset.scenePhase = 'idle';
+      active = null;
+    };
+    if (!doc.startViewTransition || !doc.querySelector('main') || doc.documentElement.dataset.motion === 'off') {
+      finish(); update(); return;
+    }
+    doc.documentElement.dataset.sceneTransition = 'on';
+    doc.documentElement.dataset.scenePhase = 'capturing';
+    try {
+      active = doc.startViewTransition(update);
+      active.ready.then(() => {
+        if (current === revision) doc.documentElement.dataset.scenePhase = 'animating';
+      }).catch(() => {});
+      active.finished.then(finish, finish);
+    } catch {
+      finish(); update();
+    }
+  };
+}
+
+export function nameSceneElements(root) {
+  const names = [
+    ['main', 'page'], ['.sidebar', 'sidebar'], ['.topbar', 'topbar'],
+    ['.mobile-nav', 'mobile-bar'], ['.discovery-intro', 'hero'],
+    ['.category-tabs', 'categories'], ['.segmented', 'exchange-tabs'],
+    ['#publish-form', 'publish-panel'], ['.steps', 'publish-steps'],
+    ['main footer', 'footer'],
+  ];
+  for (const [selector, name] of names) {
+    const element = root.querySelector(selector);
+    if (element) element.style.viewTransitionName = name;
+  }
+  root.querySelectorAll('.skill-card').forEach(card => {
+    card.style.viewTransitionName = `skill-${card.dataset.scene}`;
+  });
 }
