@@ -179,7 +179,7 @@ const empty = (title, copy, href = "/discover", action = "去发现技能") =>
     <p>${copy}</p>
     <a class="btn primary" href="#${href}">${action}${icon("arrow")}</a>
   </div>`;
-const brandLogo = '<img class="brand-symbol" src="assets/skillpal-mark.svg?v=4.1" width="38" height="38" alt="" /><span class="brand-word">Skill<span>Pal</span></span>';
+const brandLogo = '<img class="brand-symbol" src="assets/skillpal-mark.svg?v=6" width="38" height="38" alt="" /><span class="brand-word">Skill<span>Pal</span></span>';
 function header() {
   const r = route().split("/")[1];
   const nav = [
