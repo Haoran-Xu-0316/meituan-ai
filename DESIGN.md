@@ -78,3 +78,12 @@ A revision-aware renderer skips superseded requests and restores scrolling or fo
 ## Brand mark
 
 The SkillPal mark uses two opposing curved arrows that suggest an S inside a Meituan-yellow rounded square. A diagonal gap separates the two strokes; compact open arrowheads and consistent optical weight keep the exchange motif legible at small sizes. The wordmark uses Avenir Next when available, falling back to Segoe UI and sans-serif, with consistent weight across Skill and Pal. Sidebar, mobile header, footer and favicon share assets/skillpal-mark.svg, at 36px, 32px and 22px respectively.
+
+
+## Matching and learning outcomes
+
+The discovery grid ranks reciprocal matches first and displays what each side teaches, shared time and level suitability on those cards. The matching empty state preserves the user's stated needs and offers up to three partners who can teach a requested skill, explicitly marked as not yet reciprocal; favorites remain the lightweight follow-up mechanism.
+
+A partially fulfilled exchange cannot silently terminate through cancellation: it becomes pending rescheduling, stays in the ongoing list, releases paused time reservations and preserves completed lessons. The rescheduling dialog changes only unfinished lessons, checks future dates and booking conflicts, and explicitly simulates both parties agreeing. Untouched exchanges can still be cancelled normally.
+
+Each lesson carries its original goal through completion. Participants record whether the goal was achieved or further help is needed, the concrete learning note and an optional HTTP(S) artifact link. Completing two sessions and achieving both goals are separate states; unmet goals remain visible after evaluation. Existing saved lessons remain compatible.
