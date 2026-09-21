@@ -77,4 +77,4 @@ A revision-aware renderer skips superseded requests and restores scrolling or fo
 
 ## Brand mark
 
-The SkillPal mark is a single open S monogram with broad curves and a diagonal connection, set inside a Meituan-yellow rounded square. Two compact filled arrowheads finish the S in opposite directions to express reciprocal exchange. Rounded joins and open negative space preserve clarity at small sizes. The wordmark uses Avenir Next when available, falling back to Segoe UI and sans-serif, with consistent weight across Skill and Pal. Sidebar, mobile header, footer and favicon share assets/skillpal-mark.svg, at 36px, 32px and 22px respectively.
+The SkillPal mark uses two opposing curved arrows that suggest an S inside a Meituan-yellow rounded square. A diagonal gap separates the two strokes; compact open arrowheads and consistent optical weight keep the exchange motif legible at small sizes. The wordmark uses Avenir Next when available, falling back to Segoe UI and sans-serif, with consistent weight across Skill and Pal. Sidebar, mobile header, footer and favicon share assets/skillpal-mark.svg, at 36px, 32px and 22px respectively.
