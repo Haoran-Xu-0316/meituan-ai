@@ -57,3 +57,12 @@ The visual direction references the pointer-responsive material and depth of Thr
 - Glass surfaces have opaque fallbacks; navigation, focus outlines and publishing remain usable on narrow screens.
 
 Reference: https://threeui.com/three-js/holographic-glitter-card
+
+
+## Continuous component transitions
+
+- Keep the navigation and search shell mounted between renders. Preserve the discovery sculpture and its disclosure state during category and favorite changes.
+- Navigation, mobile navigation, categories and exchange status share a sliding selection surface. Capture its current visual bounds before each update, including during interrupted motion, then stretch and settle into the next selection in 440ms.
+- Page content fades in 300ms; form steps and exchange filters add a small directional entrance. Cards use a shorter 360ms reveal. Native disclosures animate height in 320ms and reverse from their current state.
+- Reduced motion cancels pending transitions. Route cleanup releases animation, click and resize observers. No animation delays a state update or blocks input.
+- Remove redundant page subtitles and compress the guide and status explanations; retain concrete lesson content and demo labels.
