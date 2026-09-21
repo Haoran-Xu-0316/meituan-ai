@@ -179,6 +179,7 @@ const empty = (title, copy, href = "/discover", action = "去发现技能") =>
     <p>${copy}</p>
     <a class="btn primary" href="#${href}">${action}${icon("arrow")}</a>
   </div>`;
+const brandLogo = '<img class="brand-symbol" src="assets/skillpal-mark.svg" width="38" height="38" alt="" /><span class="brand-word">Skill<span>Pal</span></span>';
 function header() {
   const r = route().split("/")[1];
   const nav = [
@@ -188,11 +189,7 @@ function header() {
     ["profile", "我的", "user"],
   ];
   return /* HTML */ `<aside class="sidebar">
-      <a class="brand" href="#/discover"
-        ><span class="brand-mark">${icon("match")}</span>SkillPal<span
-          class="brand-dot"
-        ></span
-      ></a>
+      <a class="brand" href="#/discover">${brandLogo}</a>
       <div class="nav-caption">技能互换平台</div>
       <nav aria-label="主导航">
         ${nav
@@ -215,7 +212,7 @@ function header() {
       </nav>
     </aside>
     <header class="topbar">
-      <a class="mobile-brand" href="#/discover">${icon("match")}SkillPal</a>
+      <a class="mobile-brand" href="#/discover">${brandLogo}</a>
       <form id="search-form" class="search">
         ${icon("search")}<input
           name="q"
@@ -1157,7 +1154,7 @@ function paint() {
       </div>
       ${content}
       <footer>
-        <span class="footer-brand">SkillPal</span
+        <span class="footer-brand">${brandLogo}</span
         ><span>技能互换产品演示</span>
       </footer>
     `;
