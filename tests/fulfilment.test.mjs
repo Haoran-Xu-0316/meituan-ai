@@ -8,7 +8,7 @@ const input = {teach:'摄影',learn:'Python',format:'视频交流',note:'互相�
 function scenario() {
   const state = initialState();
   const exchange = createExchange(state, partner, input, now);
-  transition(exchange, 'accept');
+  transition(exchange, 'accept', {}, now);
   return {state, exchange};
 }
 test('partial fulfilment remains open, releases the paused slot, and resumes only the remaining lesson', () => {
