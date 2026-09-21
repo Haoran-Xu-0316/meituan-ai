@@ -19,13 +19,15 @@ import {
   validatePost,
   createExchange,
   rescheduleExchange,
+  exchangeActions,
+  addExchangeMessage,
   transition,
   askDemoQuestion,
   DEMO_QUESTIONS,
   STATUS,
   availableLessonTimes,
   beijingDate,
-} from "./model.mjs?v=outcomes-9";
+} from "./model.mjs?v=logic-10";
 const paths = {
   discover: "M3 10l9-7 9 7v10a1 1 0 01-1 1h-5v-7H9v7H4a1 1 0 01-1-1z",
   match: "M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4",
@@ -149,8 +151,8 @@ const back = () =>
   /* HTML */ `<button class="text-btn back" data-action="back">
     ${icon("back")}返回
   </button>`;
-const badge = (status) =>
-  /* HTML */ `<span class="status status-${status}">${STATUS[status]}</span>`;
+const badge = (status, label = STATUS[status]) =>
+  /* HTML */ `<span class="status status-${status}">${escape(label)}</span>`;
 const field = (label, body, hint = "") =>
   /* HTML */ `<label class="field"
     ><span>${label}</span>${body}${hint
@@ -298,7 +300,7 @@ function card(p, why = false) {
             ${icon("check")}<span
               >你教${escape(m.teach.join("、"))}，向TA学${escape(m.learn.join("、"))}${m
                 .slots.length
-                ? `，${escape(slotLabel(m.slots[0]))}都有空`
+                ? `；共同常用时段：${escape(slotLabel(m.slots[0]))}`
                 : "，时间待协商"}${m.fit === 2 ? "；双方基础合适" : "；需确认教学难度"}</span
             >
           </div>`
@@ -318,7 +320,7 @@ function discover() {
     (p) =>
       p.active &&
       (filter.category === "全部" ||
-        SKILLS[p.teach[0]].category === filter.category) &&
+        p.teach.some((skill) => SKILLS[skill].category === filter.category)) &&
       (!filter.format || p.formats.includes(filter.format)) &&
       (!filter.slot || p.slots.includes(filter.slot)) &&
       (!filter.mutual || match(state.me, p).eligible) &&
@@ -742,10 +744,11 @@ function invite(p) {
           select("learn", m.learn, m.learn[0]),
         )}
       </div>
-      <div class="invitation-goals">
-        <p><strong>我分享的成果</strong>${escape(state.me.goal)}</p>
-        <p><strong>TA分享的成果</strong>${escape(p.goal)}</p>
+      <div class="form-two">
+        ${field("这节课我能教会什么", `<textarea name="teachGoal" required maxlength="200" placeholder="围绕上面选择的技能，约定一个具体成果">${escape(m.teach[0] === state.me.teach[0] ? state.me.goal : "")}</textarea>`)}
+        ${field("这节课希望TA教会什么", `<textarea name="learnGoal" required maxlength="200" placeholder="向伙伴提出本次希望完成的成果">${escape(m.learn[0] === p.teach[0] ? p.goal : "")}</textarea>`)}
       </div>
+      <p class="subtle">这是本次交换的具体目标，随邀请一起确认；修改个人资料不会改变已有约定。</p>
       <h2>安排两次45分钟的交流</h2>
       <p class="subtle">
         北京时间，选择未来14天内的时间。${m.slots.length
@@ -779,9 +782,7 @@ function invite(p) {
       ${field("教学形式", select("format", m.formats, m.formats[0]))}${field(
         "给伙伴的一句话",
         /* HTML */ `<textarea name="note" required maxlength="300">
-你好，我可以分享${escape(m.teach[0])}，想向你学${escape(
-            m.learn[0],
-          )}。我的目标是${escape(state.me.learnGoal)}。这次可以一起完成吗？</textarea
+你好，想按上述目标互相分享，两次交流各45分钟。期待你的确认！</textarea
         >`,
       )}
       <div class="notice">
@@ -801,7 +802,7 @@ function exchangeNextStep(exchange) {
     review: "记录成果并评价",
     rescheduling: "已完成的分享保留，请协商剩余课程",
     completed: "查看学习记录",
-    cancelled: "查看取消原因",
+    cancelled: exchange.resolution === "mutual-end" ? "双方同意结束，查看已完成的分享" : "查看取消原因",
     declined: "邀请未被接受",
   };
   if (labels[exchange.status]) return labels[exchange.status];
@@ -867,7 +868,7 @@ function exchanges() {
                       ></i>
                     </div>
                   </div>
-                  ${badge(e.status)}${icon("chevron")}</a
+                  ${badge(e.status, e.resolution === "mutual-end" ? "协商结束" : STATUS[e.status])}${icon("chevron")}</a
                 >`,
             )
             .join("")}
@@ -883,14 +884,15 @@ function exchanges() {
 }
 function exchangeDetail(e) {
   const p = PEOPLE.find((x) => x.id === e.personId);
-  const end = ["completed", "cancelled", "declined"].includes(e.status);
-  return `${back()}<div class="page-heading exchange-heading"><div><h1>与${escape(e.personName)}的技能交换</h1><p>${escape(e.teach)}交换${escape(e.learn)}，${escape(e.format)}。</p></div>${badge(e.status)}</div>${
-    e.status === "pending"
+  const actions = exchangeActions(e);
+  const end = !actions.communicate;
+  return `${back()}<div class="page-heading exchange-heading"><div><h1>与${escape(e.personName)}的技能交换</h1><p>${escape(e.teach)}交换${escape(e.learn)}，${escape(e.format)}。</p></div>${badge(e.status, e.resolution === "mutual-end" ? "协商结束" : STATUS[e.status])}</div>${
+    actions.respond
       ? /* HTML */ `<div class="demo-control">
           <div>
             ${icon("info")}<span
               ><strong>邀请已保存，等待回应</strong
-              ><small>演示控制：选择一种回应，继续体验交换流程。</small></span
+              ><small>${actions.accept ? "演示控制：选择一种回应，继续体验交换流程。" : "预约时间已过，请先修改邀请时间。"}</small></span
             >
           </div>
           <div>
@@ -900,13 +902,11 @@ function exchangeDetail(e) {
               data-id="${e.id}"
             >
               模拟对方拒绝</button
-            ><button class="btn primary" data-action="accept" data-id="${e.id}">
-              模拟对方接受${icon("check")}
-            </button>
+            >${actions.accept ? `<button class="btn primary" data-action="accept" data-id="${e.id}">模拟对方接受${icon("check")}</button>` : `<button class="btn primary" data-action="reschedule" data-id="${e.id}">修改过期时间${icon("edit")}</button>`}
           </div>
         </div>`
       : ""
-  }${e.reason ? /* HTML */ `<div class="notice">${icon("info")}${e.status === "rescheduling" ? "改期原因" : "取消原因"}：${escape(e.reason)}</div>` : ""}${!end && e.lessons.some((l) => l.done) && !e.lessons.every((l) => l.done) ? `<section class="exchange-followup"><div><strong>${exchangeNextStep(e)}</strong><p>${e.status === "rescheduling" ? "原预约已暂停，已完成的课程与成果保留。重新约定剩余课程后继续。" : "双方的分享都完成后，这次交换才算完成。"}</p></div><button class="btn secondary small" data-action="reschedule" data-id="${e.id}">重新约时间${icon("arrow")}</button></section>` : ""}<div class="detail-layout"><div><section class="panel"><div class="section-heading compact"><h2>我们的两节课</h2><span class="subtle">北京时间，每节45分钟</span></div><div class="lesson-list">${e.lessons
+  }${e.reason ? /* HTML */ `<div class="notice">${icon("info")}${e.resolution === "mutual-end" ? "协商结束原因" : e.status === "rescheduling" ? "改期原因" : "取消原因"}：${escape(e.reason)}</div>` : ""}${!end && e.lessons.some((l) => l.done) && !e.lessons.every((l) => l.done) ? `<section class="exchange-followup"><div><strong>${exchangeNextStep(e)}</strong><p>${e.status === "rescheduling" ? "原预约已暂停，已完成的课程与成果保留。重新约定剩余课程后继续。" : "双方的分享都完成后，这次交换才算完成。"}</p></div><button class="btn secondary small" data-action="reschedule" data-id="${e.id}">重新约时间${icon("arrow")}</button></section>` : ""}<div class="detail-layout"><div><section class="panel"><div class="section-heading compact"><h2>我们的两节课</h2><span class="subtle">北京时间，每节45分钟</span></div><div class="lesson-list">${e.lessons
     .map(
       (l, i) =>
         /* HTML */ `<article class="lesson ${l.done ? "done" : ""}">
@@ -918,18 +918,18 @@ function exchangeDetail(e) {
                   l.teacher === "me" ? e.teach : e.learn,
                 )}
               </h3>
-              ${pill(l.done ? "已完成" : "待完成", l.done ? "green" : "")}
+              ${pill(l.done ? "已完成" : end ? "未进行" : "待完成", l.done ? "green" : "")}
             </div>
-            <time>${timeText(l.at)}${e.status === "rescheduling" && !l.done ? "（原预约，待改期）" : ""}</time>
+            <time>${timeText(l.at)}${!l.done && end ? "（原预约，已结束）" : e.status === "rescheduling" && !l.done ? "（原预约，待改期）" : ""}</time>
             <p class="lesson-goal"><span>约定成果</span>${escape(l.goal)}</p>
-            ${!l.done && l.teacher !== "me" ? `<a class="text-btn lesson-material" href="#/person/${p.id}?materials=1">打开练习与参考结果${icon("arrow")}</a>` : ""}
+            ${(!l.done || l.goalStatus === "needs-help") && l.teacher !== "me" ? `<a class="text-btn lesson-material" href="#/person/${p.id}?materials=1">${l.done ? "继续练习与查看参考结果" : "打开练习与参考结果"}${icon("arrow")}</a>` : ""}
             ${l.done && l.goalStatus ? `<span class="outcome-label ${l.goalStatus === "achieved" ? "achieved" : "needs-help"}">${l.goalStatus === "achieved" ? "已完成约定成果" : "仍需练习与帮助"}</span>` : ""}
             ${l.artifact ? `<a class="text-btn lesson-material" href="${escape(l.artifact)}" target="_blank" rel="noopener noreferrer">查看本节作品${icon("arrow")}</a>` : ""}
             ${l.reflection
               ? /* HTML */ `<div class="reflection">
                   ${l.goalStatus === "needs-help" ? "还需帮助" : "学习记录"}：${escape(l.reflection)}
                 </div>`
-              : ""}${["scheduled", "learning"].includes(e.status) && !l.done
+              : ""}${actions.completeLesson[i]
               ? /* HTML */ `<button
                   class="btn secondary small"
                   data-action="lesson"
@@ -938,7 +938,7 @@ function exchangeDetail(e) {
                 >
                   模拟本节完成${icon("check")}
                 </button>`
-              : ""}
+              : !l.done && ["scheduled", "learning"].includes(e.status) ? '<small class="lesson-locked">前一节完成后可记录本节成果</small>' : ""}
           </div>
         </article>`,
     )
@@ -978,7 +978,7 @@ function exchangeDetail(e) {
             ></textarea>`,
           )}${checkboxGroup(
             "tags",
-            ["讲解清楚", "耐心友好", "目标达成"],
+            e.lessons.some((l) => l.goalStatus === "needs-help") ? ["讲解清楚", "耐心友好"] : ["讲解清楚", "耐心友好", "目标达成"],
             [],
           )}<button class="btn primary" type="submit">
             提交评价，完成交换${icon("check")}
@@ -1000,7 +1000,7 @@ function exchangeDetail(e) {
           </div>
         </section>`
       : ""
-  }<section class="panel"><h2>课前沟通 <span class="sample">模拟对话</span></h2><p class="subtle">选择问题查看伙伴的示例回复。自由留言仅保存到本机，不会发送给真实用户。</p>${!end ? `<div class="conversation-prompts">${Object.entries(DEMO_QUESTIONS).map(([topic, label]) => `<button class="btn secondary small" data-action="demo-question" data-id="${e.id}" data-topic="${topic}" ${e.messages.some((m) => m.demoTopic === topic) ? 'disabled title="已在下方回复"' : ""}>${escape(label)}</button>`).join("")}</div>` : ""}<div class="messages">${e.messages
+  }<section class="panel"><h2>${end ? "沟通记录" : "交换沟通"} <span class="sample">模拟对话</span></h2><p class="subtle">${end ? "交换已结束，保留本地交流记录。" : "选择问题查看伙伴的示例回复。自由留言仅保存到本机，不会发送给真实用户。"}</p>${!end ? `<div class="conversation-prompts">${Object.entries(DEMO_QUESTIONS).map(([topic, label]) => `<button class="btn secondary small" data-action="demo-question" data-id="${e.id}" data-topic="${topic}" ${e.messages.some((m) => m.demoTopic === topic) ? 'disabled title="已在下方回复"' : ""}>${escape(label)}</button>`).join("")}</div>` : ""}<div class="messages">${e.messages
     .map(
       (m) =>
         /* HTML */ `<div class="message ${m.by === "me" ? "mine" : ""}">
@@ -1015,7 +1015,7 @@ function exchangeDetail(e) {
     )
     .join(
       "",
-    )}</div>${!end ? /* HTML */ `<form id="message-form" data-id="${e.id}" class="message-form"><label class="sr-only" for="message-input">写下留言</label><input id="message-input" name="text" required maxlength="300" placeholder="写下想交流的问题…" /><button class="btn primary" aria-label="保存演示留言">${icon("arrow")}</button></form>` : ""}</section></div><aside class="panel exchange-aside"><h2>交换约定</h2><div class="person-line">${avatar(p)}<div><strong>${escape(p.name)}</strong><span>演示伙伴</span></div></div><dl class="agreement"><dt>我分享</dt><dd>${escape(e.teach)}</dd><dt>我学习</dt><dd>${escape(e.learn)}</dd><dt>交流方式</dt><dd>${escape(e.format)}</dd><dt>交换费用</dt><dd>免费，双方各分享45分钟</dd></dl><p class="subtle">约定已保存，之后修改个人技能不会改变本次交换。</p>${e.status === "scheduled" ? `<button class="btn secondary small" data-action="reschedule" data-id="${e.id}">修改课程时间</button>` : ""}${!end && e.status !== "review" && e.status !== "rescheduling" ? /* HTML */ `<button class="text-btn danger" data-action="cancel" data-id="${e.id}">${e.status === "pending" ? "撤回邀请" : e.lessons.some((l) => l.done) ? "暂停并协商补课" : "取消交换"}</button>` : ""}</aside></div>`;
+    )}</div>${!end ? /* HTML */ `<form id="message-form" data-id="${e.id}" class="message-form"><label class="sr-only" for="message-input">写下留言</label><input id="message-input" name="text" required maxlength="300" placeholder="写下想交流的问题…" /><button class="btn primary" aria-label="保存演示留言">${icon("arrow")}</button></form>` : ""}</section></div><aside class="panel exchange-aside"><h2>交换约定</h2><div class="person-line">${avatar(p)}<div><strong>${escape(p.name)}</strong><span>演示伙伴</span></div></div><dl class="agreement"><dt>我分享</dt><dd>${escape(e.teach)}</dd><dt>我学习</dt><dd>${escape(e.learn)}</dd><dt>交流方式</dt><dd>${escape(e.format)}</dd><dt>交换费用</dt><dd>免费，双方各分享45分钟</dd></dl><p class="subtle">约定已保存，之后修改个人技能不会改变本次交换。</p>${actions.reschedule && !e.lessons.some((l) => l.done) ? `<button class="btn secondary small" data-action="reschedule" data-id="${e.id}">修改课程时间</button>` : ""}${actions.settle ? `<button class="text-btn danger" data-action="settle" data-id="${e.id}">协商结束交换</button>` : ""}${actions.cancel ? /* HTML */ `<button class="text-btn danger" data-action="cancel" data-id="${e.id}">${e.status === "pending" ? "撤回邀请" : e.lessons.some((l) => l.done) ? "暂停并协商补课" : "取消交换"}</button>` : ""}</aside></div>`;
 }
 function profile() {
   const m = state.me;
@@ -1358,11 +1358,13 @@ document.addEventListener("click", (ev) => {
         `<input type="datetime-local" name="time" required min="${min}" max="${max}" value="${suggested[index] ? local(suggested[index]) : ""}" />`,
       )).join("");
       showDialog(
-        "重新约定剩余课程",
-        `<p class="subtle">北京时间，未来14天内。已完成课程保持不变。</p>${fields}<button class="btn primary full">模拟双方确认改期</button>`,
+        e.status === "pending" ? "修改邀请时间" : "重新约定剩余课程",
+        `<p class="subtle">北京时间，未来14天内。${e.status === "pending" ? "修改后仍需等待对方接受。" : "已完成课程保持不变。"}</p>${fields}<button class="btn primary full">${e.status === "pending" ? "保存邀请时间" : "模拟双方确认改期"}</button>`,
         "reschedule-form",
         `data-id="${id}"`,
       );
+    } else if (a === "settle") {
+      showDialog("双方协商结束", `${field("协商结果", '<textarea name="reason" required maxlength="200" placeholder="记录双方同意不再继续剩余课程的原因"></textarea>')}<p class="subtle">这是模拟双方同意结束。未完成课程不会计为完成，已有成果继续保留。</p><button class="btn danger-btn full">模拟双方同意结束</button>`, "settle-form", `data-id="${id}"`);
     } else if (a === "cancel") {
       const partiallyDone = e.lessons.some((l) => l.done);
       showDialog(
@@ -1397,6 +1399,11 @@ document.addEventListener("click", (ev) => {
 document.addEventListener("change", (ev) => {
   const t = ev.target;
   if (t.closest("#publish-form")) captureDraft(t.closest("form"));
+  if (t.closest("#invite-form") && ["teach", "learn"].includes(t.name)) {
+    const goal = t.form.elements[t.name === "teach" ? "teachGoal" : "learnGoal"];
+    goal.value = "";
+    goal.placeholder = `请确认本次${t.value}课程要完成的具体成果`;
+  }
   if (t.id === "format-filter") {
     filter.format = t.value;
     render();
@@ -1462,6 +1469,8 @@ document.addEventListener("submit", (ev) => {
         learn: f.get("learn"),
         format: f.get("format"),
         note: f.get("note"),
+        teachGoal: f.get("teachGoal"),
+        learnGoal: f.get("learnGoal"),
         times: [f.get("time1"), f.get("time2")].map((t) =>
           new Date(`${t}:00+08:00`).toISOString(),
         ),
@@ -1470,12 +1479,14 @@ document.addEventListener("submit", (ev) => {
       go("/exchange/" + e.id);
       toast("演示邀请已保存");
     } else if (
+      form.id === "settle-form" ||
       form.id === "reschedule-form" ||
       form.id === "lesson-form" ||
       form.id === "cancel-form" ||
       form.id === "review-form"
     ) {
       const e = state.exchanges.find((e) => e.id === form.dataset.id);
+      if (form.id === "settle-form") transition(e, "settle", { reason: f.get("reason") });
       if (form.id === "reschedule-form")
         rescheduleExchange(state, e, f.getAll("time").map((t) => new Date(`${t}:00+08:00`).toISOString()));
       if (form.id === "lesson-form")
@@ -1499,19 +1510,14 @@ document.addEventListener("submit", (ev) => {
       toast(
         form.id === "review-form"
           ? "交换已完成"
+          : form.id === "settle-form" ? "已模拟双方同意结束，已完成记录保留"
           : form.id === "cancel-form"
             ? (e.status === "rescheduling" ? "已保留待协商补课事项" : "交换已取消")
-            : form.id === "reschedule-form" ? "已模拟确认新的课程时间" : "本节成果已保存",
+            : form.id === "reschedule-form" ? (e.status === "pending" ? "邀请时间已修改，等待对方接受" : "已模拟确认新的课程时间") : "本节成果已保存",
       );
     } else if (form.id === "message-form") {
       const e = state.exchanges.find((e) => e.id === form.dataset.id);
-      const text = f.get("text").trim();
-      if (!text) throw Error("请先写下留言。");
-      e.messages.push({
-        by: "me",
-        text: text.slice(0, 300),
-        at: new Date().toISOString(),
-      });
+      addExchangeMessage(e, f.get("text"));
       persist();
       render();
       toast("留言已保存到本机");
