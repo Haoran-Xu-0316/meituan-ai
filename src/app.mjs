@@ -1,4 +1,4 @@
-import { captureTransition, mountTransitions } from "./transitions.mjs";
+import { captureTransition, mountTransitions, createSceneRenderer, nameSceneElements } from "./transitions.mjs";
 import { mountMotion } from "./motion.mjs";
 import { WORKSHOPS, workshopText } from "../data/workshops.mjs";
 import {
@@ -1079,7 +1079,8 @@ function profile() {
     </section>`;
 }
 let disposeMotion = () => {};
-function render() {
+const render = createSceneRenderer(document, paint);
+function paint() {
   const snapshot = captureTransition(app);
   disposeMotion();
   const focused = document.activeElement;
@@ -1165,6 +1166,7 @@ function render() {
   const disposeEffects = mountMotion(app);
   const disposeTransitions = mountTransitions(app, snapshot);
   disposeMotion = () => { disposeEffects(); disposeTransitions(); };
+  nameSceneElements(app);
   if (focusSelector)
     document.querySelector(focusSelector)?.focus({ preventScroll: true });
   document.title = `${{ discover: "发现技能", matches: "我的匹配", exchanges: "我的交换", profile: "我的", publish: "发布技能", person: "伙伴详情", invite: "发起交换", exchange: "交换详情" }[part] || "技能互换"} · SkillPal`;
@@ -1300,18 +1302,18 @@ document.addEventListener("click", (ev) => {
       step--;
       state.draftStep = step;
       persist();
-      render();
-      window.scrollTo(0, 0);
+      render(() => window.scrollTo(0, 0));
     } else if (a === "demo-question") {
       askDemoQuestion(e, button.dataset.topic);
       persist();
-      render();
-      const reply = document.querySelector(".messages .message:last-child");
-      if (reply) {
-        reply.setAttribute("tabindex", "-1");
-        reply.focus({ preventScroll: true });
-        reply.scrollIntoView({ block: "nearest", behavior: "auto" });
-      }
+      render(() => {
+        const reply = document.querySelector(".messages .message:last-child");
+        if (reply) {
+          reply.setAttribute("tabindex", "-1");
+          reply.focus({ preventScroll: true });
+          reply.scrollIntoView({ block: "nearest", behavior: "auto" });
+        }
+      });
     } else if (a === "accept" || a === "decline") {
       transition(e, a);
       persist();
@@ -1402,8 +1404,7 @@ document.addEventListener("submit", (ev) => {
         step++;
         state.draftStep = step;
         persist();
-        render();
-        window.scrollTo(0, 0);
+        render(() => window.scrollTo(0, 0));
       } else {
         validatePost(draft);
         state.me = { ...state.me, ...draft, active: true, published: true };
@@ -1515,9 +1516,10 @@ window.addEventListener("hashchange", () => {
   previousRoute = currentRoute;
   history.replaceState({ skillpal: true }, "");
   dialog.close();
-  render();
-  window.scrollTo(0, 0);
-  document.querySelector("#main").focus({ preventScroll: true });
+  render(() => {
+    window.scrollTo(0, 0);
+    document.querySelector("#main").focus({ preventScroll: true });
+  });
 });
 render();
 if (loaded.warning) toast(loaded.warning);
