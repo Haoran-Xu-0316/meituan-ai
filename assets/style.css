@@ -2567,3 +2567,5 @@ fieldset:has([aria-invalid="true"]) {
   .exchange-followup { align-items: flex-start; flex-direction: column; gap: 14px; padding: 18px; }
   .exchange-followup .btn { align-self: flex-end; }
 }
+
+.lesson-locked { display: block; margin-top: 12px; color: var(--muted); font-size: 12px; }
