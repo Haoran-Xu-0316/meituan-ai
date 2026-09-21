@@ -1,3 +1,4 @@
+import { captureTransition, mountTransitions } from "./transitions.mjs";
 import { mountMotion } from "./motion.mjs";
 import { WORKSHOPS, workshopText } from "../data/workshops.mjs";
 import {
@@ -329,10 +330,10 @@ function discover() {
           .toLowerCase()
           .includes(filter.q.toLowerCase())),
   );
-  return /* HTML */ `<section class="discovery-intro">
+  return /* HTML */ `<section class="discovery-intro" data-profile-key="${escape(JSON.stringify([state.me.teach, state.me.want, state.me.active]))}">
       <div class="intro-heading"><div class="exchange-sculpture" aria-hidden="true"><div class="sculpture-shadow"></div><div class="sculpture-stage"><div class="orbit-ring"><div class="orbit-track"><i></i></div></div><div class="orbit-ring secondary"><div class="orbit-track"><i></i></div></div><span class="sculpture-spark spark-one">+</span><span class="sculpture-spark spark-two">+</span><span class="glass-tile back">${icon("leaf")}</span><span class="glass-tile front">${icon("match")}</span></div></div><h1>用你会的，换你想学的。</h1><a class="btn dark" href="#/matches">${state.me.active ? `查看${matches(state.me, PEOPLE).length}位匹配` : "查看匹配"}${icon("arrow")}</a></div>
       <div class="intro-skills"><span>我能教<strong>${escape(state.me.teach.join("、"))}</strong></span>${icon("match")}<span>我想学<strong>${escape(state.me.want.join("、"))}</strong></span><a class="text-btn" href="#/publish" aria-label="编辑我的供需">编辑${icon("edit")}</a></div>
-      <details class="intro-help"><summary>如何体验一次技能交换</summary><div class="guide-steps"><div><strong>1.看看谁和你互补</strong><p>默认身份小麦能教摄影、想学Python。在我的匹配中，林予安与你技能互补且有共同时间。</p><a class="text-btn" href="#/person/lin">查看这位伙伴${icon("arrow")}</a></div><div><strong>2.约定两节课</strong><p>查看课程安排，发送邀请后点击模拟对方接受。两节课分别记录你教什么、你学什么。</p></div><div><strong>3.记录学到的东西</strong><p>分别模拟完成两节课，写下收获并评价。也可以修改自己的供需，看看匹配结果如何变化。</p></div></div><p class="guide-note">人物、经历和评价均为示例，卡片场景图由AI生成。操作只保存在当前浏览器，不会联系真实用户。</p></details>
+      <details class="intro-help"><summary>体验流程</summary><div class="guide-steps"><div><strong>1.看看谁和你互补</strong><p>小麦教摄影，林予安教Python，双方时间匹配。</p><a class="text-btn" href="#/person/lin">查看这位伙伴${icon("arrow")}</a></div><div><strong>2.约定两节课</strong><p>发送邀请，模拟接受，约定两节课。</p></div><div><strong>3.记录学到的东西</strong><p>完成课程，记录收获，留下评价。</p></div></div><p class="guide-note">人物、经历和评价均为示例，卡片场景图由AI生成。操作只保存在当前浏览器，不会联系真实用户。</p></details>
     </section>
     <section aria-labelledby="discover-title">
       <div class="section-heading">
@@ -423,7 +424,7 @@ function matching() {
   return /* HTML */ `<div class="page-heading">
 
       <h1>我的技能伙伴</h1>
-      <p>基于双方技能需求、学习基础、教学形式与可用时间推荐。</p>
+
     </div>
     <div class="match-summary">
       <div>
@@ -467,7 +468,7 @@ function matching() {
               ? /* HTML */ `<div class="section-heading spaced">
                     <div>
                       <h2>技能合拍，再约个时间</h2>
-                      <p>双方需求互补，但当前没有共同可用时段。</p>
+                      <p>时间待协商。</p>
                     </div>
                   </div>
                   <div class="card-grid">
@@ -478,7 +479,7 @@ function matching() {
     <div class="notice">
       ${icon(
         "info",
-      )}匹配依据来自双方填写的资料，不代表平台认证。人物和经历均为演示数据。
+      )}匹配基于填写资料，人物为演示数据。
     </div>`;
 }
 function materialBlock(block) {
@@ -578,7 +579,7 @@ function publish() {
     <div class="page-heading">
 
       <h1>${state.me.published ? "编辑我的技能供需" : "发布技能"}</h1>
-      <p>不用是专家，一次分享能帮助对方前进一步就很好。</p>
+
     </div>
     <ol class="steps">
       ${["我能教", "我想学", "交换安排"]
@@ -637,8 +638,7 @@ ${escape(d.experience)}</textarea
               >`,
             )}`
         : step === 2
-          ? /* HTML */ `<h2>给好奇心一个方向</h2>
-              <p class="subtle">想学什么，就从一个小目标开始。</p>
+          ? /* HTML */ `<h2>你想学什么？</h2>
               <fieldset>
                 <legend>我想学的技能，选择1至3项</legend>
                 ${checkboxGroup("want", Object.keys(SKILLS), d.want)}
@@ -654,7 +654,7 @@ ${escape(d.experience)}</textarea
 ${escape(d.learnGoal)}</textarea
                 >`,
               )}`
-          : /* HTML */ `<h2>留一点时间，一起进步</h2>
+          : /* HTML */ `<h2>安排时间与方式</h2>
               <fieldset>
                 <legend>可用时段，北京时间</legend>
                 ${checkboxGroup(
@@ -785,11 +785,11 @@ function invite(p) {
 // Derive the next action from the exchange itself, without inventing activity.
 function exchangeNextStep(exchange) {
   const labels = {
-    pending: "等待伙伴回应，可查看邀请详情",
-    review: "两节课已完成，写下这次交换的收获",
-    completed: "交换已完成，可回顾学习记录与评价",
-    cancelled: "交换已取消，可查看结束原因",
-    declined: "邀请未被接受，可以寻找其他伙伴",
+    pending: "等待回应",
+    review: "待评价",
+    completed: "查看学习记录",
+    cancelled: "查看取消原因",
+    declined: "邀请未被接受",
   };
   if (labels[exchange.status]) return labels[exchange.status];
   const next = exchange.lessons.find(lesson => !lesson.done);
@@ -809,7 +809,7 @@ function exchanges() {
   return /* HTML */ `<div class="page-heading">
 
       <h1>我的交换</h1>
-      <p>查看邀请、课程进度和评价。</p>
+
     </div>
     <div class="segmented">
       ${Object.keys(groups)
@@ -861,7 +861,7 @@ function exchanges() {
           "这里还没有交换记录",
           exchangeTab === "全部"
             ? "找一位互相需要的伙伴，开始你的第一次交换。"
-            : "这个分类暂时没有记录，可以切换其他分类查看。",
+            : "切换分类，查看其他交换。",
           "/matches",
           "寻找技能伙伴",
         )}`;
@@ -930,7 +930,7 @@ function exchangeDetail(e) {
     e.status === "review"
       ? /* HTML */ `<form id="review-form" data-id="${e.id}" class="panel">
           <h2>这次交换，收获了什么？</h2>
-          <p class="subtle">记录一次小小的进步，也给伙伴一点反馈。</p>
+          <p class="subtle">写下收获与建议。</p>
           <div class="form-error" role="alert"></div>
           <fieldset>
             <legend>总体评分</legend>
@@ -971,7 +971,7 @@ function exchangeDetail(e) {
     e.review
       ? /* HTML */ `<section class="panel">
           <span class="eyebrow">交换已完成</span>
-          <h2>把学到的，带进生活里</h2>
+          <h2>交换已完成</h2>
           <div class="review-sample">
             <span class="stars">${"★".repeat(e.review.rating)}</span>
             <p>${escape(e.review.text)}</p>
@@ -1010,7 +1010,7 @@ function profile() {
       <div>
         <h2>${escape(m.name)}</h2>
         <p>${escape(m.bio)}</p>
-        <span class="demo-label">本地演示身份</span>
+        <span class="demo-label">演示身份</span>
       </div>
       <button class="btn secondary" data-action="edit-profile">
         ${icon("edit")}编辑资料
@@ -1066,7 +1066,7 @@ function profile() {
     <details class="display-preferences">
       <summary>显示偏好${icon("chevron")}</summary>
       <label><input type="checkbox" data-reduce-motion aria-describedby="motion-preference-note" />减少动态效果</label>
-      <p id="motion-preference-note">关闭卡片倾斜、浮动与过渡动画。系统的减少动态效果设置优先。</p>
+      <p id="motion-preference-note">跟随系统设置，也可手动关闭。</p>
     </details>
     <section class="demo-settings">
       <div>
@@ -1080,6 +1080,7 @@ function profile() {
 }
 let disposeMotion = () => {};
 function render() {
+  const snapshot = captureTransition(app);
   disposeMotion();
   const focused = document.activeElement;
   const focusSelector = focused?.id
@@ -1121,9 +1122,30 @@ function render() {
       "可以回到发现页重试，或在我的页面重置演示。",
     );
   }
-  app.innerHTML =
-    header() +
-    /* HTML */ `<main id="main" data-view="${escape(part)}" tabindex="-1">
+  // Keep the navigation and search DOM stable while the page content changes.
+  if (!app.querySelector('main')) app.innerHTML = header() + '<main id="main" tabindex="-1"></main>';
+  const main = app.querySelector('main');
+  const previousIntro = main.dataset.view === 'discover' && part === 'discover' ? main.querySelector('.discovery-intro') : null;
+  main.dataset.view = part;
+  main.dataset.transitionKey = `${route()}:${part.startsWith('publish') ? step : part === 'discover' ? filter.category : part === 'exchanges' ? exchangeTab : ''}`;
+  app.querySelectorAll('.sidebar nav a, .mobile-nav a').forEach(link => {
+    const active = link.getAttribute('href') === `#/${part}`;
+    link.classList.toggle('active', active);
+    if (active) link.setAttribute('aria-current', 'page');
+    else link.removeAttribute('aria-current');
+  });
+  const exchangeLink = app.querySelector('.sidebar a[href="#/exchanges"]');
+  exchangeLink.querySelector('.nav-count')?.remove();
+  const pendingCount = state.exchanges.filter(exchange => exchange.status === 'pending').length;
+  if (pendingCount) {
+    const count = document.createElement('span');
+    count.className = 'nav-count';
+    count.textContent = pendingCount;
+    exchangeLink.append(count);
+  }
+  const search = app.querySelector('.search input');
+  if (search.value !== filter.q) search.value = filter.q;
+  main.innerHTML = /* HTML */ `
       <div
         id="save-warning"
         class="notice save-notice"
@@ -1137,8 +1159,12 @@ function render() {
         <span class="footer-brand">SkillPal</span
         ><span>技能互换产品演示</span>
       </footer>
-    </main>`;
-  disposeMotion = mountMotion(app);
+    `;
+  const nextIntro = main.querySelector('.discovery-intro');
+  if (previousIntro && previousIntro.dataset.profileKey === nextIntro?.dataset.profileKey) nextIntro.replaceWith(previousIntro);
+  const disposeEffects = mountMotion(app);
+  const disposeTransitions = mountTransitions(app, snapshot);
+  disposeMotion = () => { disposeEffects(); disposeTransitions(); };
   if (focusSelector)
     document.querySelector(focusSelector)?.focus({ preventScroll: true });
   document.title = `${{ discover: "发现技能", matches: "我的匹配", exchanges: "我的交换", profile: "我的", publish: "发布技能", person: "伙伴详情", invite: "发起交换", exchange: "交换详情" }[part] || "技能互换"} · SkillPal`;
@@ -1430,7 +1456,7 @@ document.addEventListener("submit", (ev) => {
       render();
       toast(
         form.id === "review-form"
-          ? "交换完成，把学到的带进生活里"
+          ? "交换已完成"
           : form.id === "cancel-form"
             ? "交换已取消，已有记录已保留"
             : "本节已模拟完成",
