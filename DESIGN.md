@@ -11,15 +11,15 @@ Operate模式。白天在电脑或手机上寻找学习伙伴，优先清晰地�
 
 ## Colors
 
-品牌#FFD100，柔黄#FFF8D6，底色#F7F8FA，白色#FFFFFF，主字#222222，次字#666873。技能分类使用低饱和辅助色，仅帮助辨识。
+品牌#FFD100，柔黄#FFF8D6，底色#F6F6F2，白色#FFFFFF，主字#24271F，次字#666873。技能分类使用低饱和辅助色，仅帮助辨识。
 
 ## Typography
 
-系统无衬线字体，中文苹方；正文14–16px，标题28–40px。品牌英文采用系统粗体，避免外部字体依赖。
+系统无衬线字体，中文苹方；正文14–16px，页面标题28–40px，发现首屏使用38–58px双行标题，手机34px。品牌英文采用系统粗体，避免外部字体依赖。
 
 ## Layout
 
-桌面208px侧栏、72px顶栏，主区最大1400px。发现首屏使用一个黄色供需区，合并匹配入口、个人技能和折叠式体验说明，下面直接呈现分类与技能卡。900px以下改为底部导航，600px以下单列。
+桌面208px侧栏、72px顶栏，主区最大1400px。发现首屏采用白色双栏构图，左侧是双行标题和匹配入口，右侧以黄色圆面衬托一白一深的立体供需卡。卡片直接显示当前用户的教学与学习技能，避免另设重复供需栏。手机上下排列，体验说明折叠在底部。下面直接呈现分类与技能卡。900px以下改为底部导航，600px以下单列。
 
 ## Elevation & Depth
 
@@ -41,18 +41,18 @@ Operate模式。白天在电脑或手机上寻找学习伙伴，优先清晰地�
 
 详情先并排展示能教与想学，再呈现课程内容与预约操作。课程安排、准备、练习、个人经历和反馈完整保留，默认通过折叠面板按需阅读。时间与匹配说明集中一处。手机仅显示固定的交换按钮，隐藏正文中的重复按钮。
 
-首页卡片保留技能、伙伴、教学成果、学习需求和入口，删除重复口号、通用副标题与重复时长说明。全局导航和业务页标题使用直接的功能名称。
+首页技能卡使用218px照片区，手机202px；照片底部使用深色遮罩承托白色技能名，正文独立呈现具体学习成果。卡片保留技能、伙伴、教学成果、学习需求和入口，删除重复口号、通用副标题与重复时长说明。全局导航和业务页标题使用直接的功能名称。
 
 ## Glass and motion
 
 The visual direction references the pointer-responsive material and depth of ThreeUI's Holographic Glitter Card, with an original implementation for SkillPal. The site uses CSS 3D transforms, native Web Animations and backdrop blur; it does not require Three.js or a WebGL canvas.
 
 - Keep Meituan yellow, readable white card bodies and all twelve distinct lesson images.
-- Two translucent tiles in the introduction represent learning and exchange. Pointer movement changes their perspective. Two orbital light points and gently floating tiles animate only while the introduction is visible and the document is foregrounded.
+- Two perspective tiles in the introduction show the actual teaching and learning skills, with a translucent teaching surface and graphite learning surface. Multiple skills use compact type and omit decorative icons to keep all content visible. Pointer movement changes their perspective. Two orbital light points and gently floating tiles animate only while the introduction is visible and the document is foregrounded.
 - Cards tilt at most 4.5 degrees per axis, with a small counter-moving photograph parallax. Reflection, elevation and shadow respond to the pointer, while touch devices retain normal scrolling and press feedback.
 - Cards enter in a short stagger when the visible partner collection changes; favorite updates do not replay the entire grid. New cards still reveal as they enter the viewport, and content remains visible if animation APIs are unavailable.
 - The header contains only search and publishing. The optional reduce-motion checkbox lives under the profile display preferences, persists separately from learning records, and respects the system setting.
-- Matching uses paired skill surfaces; exchanges show status-derived next steps, rounded filter tabs and a connected lesson timeline. Profile skill panels distinguish teaching from learning. Page headings enter briefly on route changes, without moving forms or replaying on field edits.
+- Matching uses an unboxed pair of skill groups on a white summary surface with a yellow exchange symbol; exchanges show status-derived next steps, rounded filter tabs and a connected lesson timeline. Profile skill panels distinguish teaching from learning. Page headings enter briefly on route changes, without moving forms or replaying on field edits.
 - Each render disposes observers, animation frames and listeners. Hidden tabs and scrolling clear transient pointer state.
 - Glass surfaces have opaque fallbacks; navigation, focus outlines and publishing remain usable on narrow screens.
 
