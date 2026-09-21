@@ -18,13 +18,14 @@ import {
   matches,
   validatePost,
   createExchange,
+  rescheduleExchange,
   transition,
   askDemoQuestion,
   DEMO_QUESTIONS,
   STATUS,
   availableLessonTimes,
   beijingDate,
-} from "./model.mjs";
+} from "./model.mjs?v=outcomes-9";
 const paths = {
   discover: "M3 10l9-7 9 7v10a1 1 0 01-1 1h-5v-7H9v7H4a1 1 0 01-1-1z",
   match: "M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4",
@@ -292,13 +293,13 @@ function card(p, why = false) {
         <span class="role want">想学</span>
         <p>${escape(p.want.join("、"))}</p>
       </div>
-      ${why
+      ${m.eligible
         ? /* HTML */ `<div class="match-reasons">
             ${icon("check")}<span
-              >${escape(m.learn.join("、"))}换${escape(m.teach.join("、"))}${m
+              >你教${escape(m.teach.join("、"))}，向TA学${escape(m.learn.join("、"))}${m
                 .slots.length
                 ? `，${escape(slotLabel(m.slots[0]))}都有空`
-                : "，需要协商时间"}</span
+                : "，时间待协商"}${m.fit === 2 ? "；双方基础合适" : "；需确认教学难度"}</span
             >
           </div>`
         : ""}
@@ -327,6 +328,8 @@ function discover() {
           .toLowerCase()
           .includes(filter.q.toLowerCase())),
   );
+  const priorities = new Map(matches(state.me, PEOPLE).map((m, i) => [m.person.id, i]));
+  people.sort((a, b) => (priorities.get(a.id) ?? PEOPLE.length) - (priorities.get(b.id) ?? PEOPLE.length));
   return /* HTML */ `<section class="discovery-intro" data-profile-key="${escape(JSON.stringify([state.me.teach, state.me.want, state.me.active]))}">
       <div class="intro-heading">
         <div class="intro-copy">
@@ -428,6 +431,7 @@ function discover() {
     </section>`;
 }
 function matching() {
+  const candidates = PEOPLE.filter((p) => p.active && match(state.me, p).learn.length).slice(0, 3);
   const list = matches(state.me, PEOPLE),
     overlap = list.filter((m) => m.slots.length),
     other = list.filter((m) => !m.slots.length);
@@ -454,12 +458,9 @@ function matching() {
           "重新发布",
         )
       : !list.length
-        ? empty(
-            "还差一点，就能互相需要",
-            "试试补充一项你能教的技能，或调整想学的内容与教学形式。",
-            "/publish",
-            "调整我的供需",
-          )
+        ? candidates.length
+          ? `<section class="match-gap"><div><h2>能教你，尚待互补</h2><p>暂时没有双向匹配。对照TA想学的内容，可以先收藏。</p></div><a class="text-btn" href="#/discover">浏览全部${icon("arrow")}</a></section><div class="card-grid">${candidates.map((p) => card(p)).join("")}</div>`
+          : empty("暂时没有双向互补的伙伴", "保留真实需求，先看看其他技能。", "/discover", "浏览全部技能")
         : `${
             overlap.length
               ? /* HTML */ `<div class="section-heading">
@@ -508,7 +509,8 @@ function materialDownload(name, content, label = name) {
 }
 function workshop(p) {
   const content = WORKSHOPS[p.id];
-  return `<details class="detail-section workshop"><summary>实操样例与材料<span>含参考答案</span></summary>
+  const expanded = new URLSearchParams(route().split("?")[1] || "").get("materials") === "1";
+  return `<details class="detail-section workshop" ${expanded ? "open" : ""}><summary>实操样例与材料<span>含参考答案</span></summary>
     <h3 class="workshop-title">${escape(content.title)}</h3><p>${escape(content.brief)}</p>
     <div class="material-downloads">${materialDownload(p.id + "-practice.txt", workshopText(content), "下载完整练习讲义")}${(content.files || []).map((file) => materialDownload(file.name, file.content)).join("")}</div>
     ${content.blocks.map(materialBlock).join("")}
@@ -796,13 +798,16 @@ function invite(p) {
 function exchangeNextStep(exchange) {
   const labels = {
     pending: "等待回应",
-    review: "待评价",
+    review: "记录成果并评价",
+    rescheduling: "已完成的分享保留，请协商剩余课程",
     completed: "查看学习记录",
     cancelled: "查看取消原因",
     declined: "邀请未被接受",
   };
   if (labels[exchange.status]) return labels[exchange.status];
   const next = exchange.lessons.find(lesson => !lesson.done);
+  if (exchange.lessons.some((l) => l.done) && next)
+    return next.teacher === "me" ? "已向伙伴学完，待完成你的分享" : "你的分享已完成，等待对方回教";
   if (!next) return "查看课程记录";
   if (new Date(next.at).getTime() + 45 * 60_000 < Date.now()) return `待补充课程记录：${timeText(next.at)}`;
   return `下一节${next.teacher === "me" ? "我来教" : "我来学"}：${timeText(next.at)}`;
@@ -811,7 +816,7 @@ function exchanges() {
   const groups = {
     全部: () => true,
     待回应: (e) => e.status === "pending",
-    进行中: (e) => ["scheduled", "learning", "review"].includes(e.status),
+    进行中: (e) => ["scheduled", "learning", "rescheduling", "review"].includes(e.status),
     已完成: (e) => e.status === "completed",
     已结束: (e) => ["declined", "cancelled"].includes(e.status),
   };
@@ -901,7 +906,7 @@ function exchangeDetail(e) {
           </div>
         </div>`
       : ""
-  }${e.reason ? /* HTML */ `<div class="notice">${icon("info")}取消原因：${escape(e.reason)}</div>` : ""}<div class="detail-layout"><div><section class="panel"><div class="section-heading compact"><h2>我们的两节课</h2><span class="subtle">北京时间，每节45分钟</span></div><div class="lesson-list">${e.lessons
+  }${e.reason ? /* HTML */ `<div class="notice">${icon("info")}${e.status === "rescheduling" ? "改期原因" : "取消原因"}：${escape(e.reason)}</div>` : ""}${!end && e.lessons.some((l) => l.done) && !e.lessons.every((l) => l.done) ? `<section class="exchange-followup"><div><strong>${exchangeNextStep(e)}</strong><p>${e.status === "rescheduling" ? "原预约已暂停，已完成的课程与成果保留。重新约定剩余课程后继续。" : "双方的分享都完成后，这次交换才算完成。"}</p></div><button class="btn secondary small" data-action="reschedule" data-id="${e.id}">重新约时间${icon("arrow")}</button></section>` : ""}<div class="detail-layout"><div><section class="panel"><div class="section-heading compact"><h2>我们的两节课</h2><span class="subtle">北京时间，每节45分钟</span></div><div class="lesson-list">${e.lessons
     .map(
       (l, i) =>
         /* HTML */ `<article class="lesson ${l.done ? "done" : ""}">
@@ -915,11 +920,14 @@ function exchangeDetail(e) {
               </h3>
               ${pill(l.done ? "已完成" : "待完成", l.done ? "green" : "")}
             </div>
-            <time>${timeText(l.at)}</time>
-            <p>${escape(l.goal)}</p>
+            <time>${timeText(l.at)}${e.status === "rescheduling" && !l.done ? "（原预约，待改期）" : ""}</time>
+            <p class="lesson-goal"><span>约定成果</span>${escape(l.goal)}</p>
+            ${!l.done && l.teacher !== "me" ? `<a class="text-btn lesson-material" href="#/person/${p.id}?materials=1">打开练习与参考结果${icon("arrow")}</a>` : ""}
+            ${l.done && l.goalStatus ? `<span class="outcome-label ${l.goalStatus === "achieved" ? "achieved" : "needs-help"}">${l.goalStatus === "achieved" ? "已完成约定成果" : "仍需练习与帮助"}</span>` : ""}
+            ${l.artifact ? `<a class="text-btn lesson-material" href="${escape(l.artifact)}" target="_blank" rel="noopener noreferrer">查看本节作品${icon("arrow")}</a>` : ""}
             ${l.reflection
               ? /* HTML */ `<div class="reflection">
-                  学习记录：${escape(l.reflection)}
+                  ${l.goalStatus === "needs-help" ? "还需帮助" : "学习记录"}：${escape(l.reflection)}
                 </div>`
               : ""}${["scheduled", "learning"].includes(e.status) && !l.done
               ? /* HTML */ `<button
@@ -1007,7 +1015,7 @@ function exchangeDetail(e) {
     )
     .join(
       "",
-    )}</div>${!end ? /* HTML */ `<form id="message-form" data-id="${e.id}" class="message-form"><label class="sr-only" for="message-input">写下留言</label><input id="message-input" name="text" required maxlength="300" placeholder="写下想交流的问题…" /><button class="btn primary" aria-label="保存演示留言">${icon("arrow")}</button></form>` : ""}</section></div><aside class="panel exchange-aside"><h2>交换约定</h2><div class="person-line">${avatar(p)}<div><strong>${escape(p.name)}</strong><span>演示伙伴</span></div></div><dl class="agreement"><dt>我分享</dt><dd>${escape(e.teach)}</dd><dt>我学习</dt><dd>${escape(e.learn)}</dd><dt>交流方式</dt><dd>${escape(e.format)}</dd><dt>交换费用</dt><dd>免费，双方各分享45分钟</dd></dl><p class="subtle">约定已保存，之后修改个人技能不会改变本次交换。</p>${!end ? /* HTML */ `<button class="text-btn danger" data-action="cancel" data-id="${e.id}">${e.status === "pending" ? "撤回邀请" : "取消交换"}</button>` : ""}</aside></div>`;
+    )}</div>${!end ? /* HTML */ `<form id="message-form" data-id="${e.id}" class="message-form"><label class="sr-only" for="message-input">写下留言</label><input id="message-input" name="text" required maxlength="300" placeholder="写下想交流的问题…" /><button class="btn primary" aria-label="保存演示留言">${icon("arrow")}</button></form>` : ""}</section></div><aside class="panel exchange-aside"><h2>交换约定</h2><div class="person-line">${avatar(p)}<div><strong>${escape(p.name)}</strong><span>演示伙伴</span></div></div><dl class="agreement"><dt>我分享</dt><dd>${escape(e.teach)}</dd><dt>我学习</dt><dd>${escape(e.learn)}</dd><dt>交流方式</dt><dd>${escape(e.format)}</dd><dt>交换费用</dt><dd>免费，双方各分享45分钟</dd></dl><p class="subtle">约定已保存，之后修改个人技能不会改变本次交换。</p>${e.status === "scheduled" ? `<button class="btn secondary small" data-action="reschedule" data-id="${e.id}">修改课程时间</button>` : ""}${!end && e.status !== "review" && e.status !== "rescheduling" ? /* HTML */ `<button class="text-btn danger" data-action="cancel" data-id="${e.id}">${e.status === "pending" ? "撤回邀请" : e.lessons.some((l) => l.done) ? "暂停并协商补课" : "取消交换"}</button>` : ""}</aside></div>`;
 }
 function profile() {
   const m = state.me;
@@ -1334,14 +1342,32 @@ document.addEventListener("click", (ev) => {
     } else if (a === "lesson") {
       showDialog(
         "记录这节课的小收获",
-        `${field("学习记录，可选", '<textarea name="reflection" maxlength="200" placeholder="记下一件学会的事…"></textarea>')}<p class="subtle">这是演示操作，不代表真实课程已经发生。</p><button class="btn primary full">确认模拟完成</button>`,
+        `<p class="dialog-goal">约定成果：${escape(e.lessons[Number(button.dataset.index)].goal)}</p>${field("目标完成情况", '<select name="goalStatus"><option value="achieved">已完成约定成果</option><option value="needs-help">还需要练习或帮助</option></select>')}${field("学习记录", '<textarea name="reflection" maxlength="200" placeholder="记录学会了什么；如需帮助，写下具体卡点。"></textarea>')}${field("作品链接，可选", '<input type="url" name="artifact" maxlength="1000" placeholder="https://…" />')}<p class="subtle">这是演示操作，不代表真实课程已经发生。</p><button class="btn primary full">确认模拟完成</button>`,
         "lesson-form",
         `data-id="${id}" data-index="${button.dataset.index}"`,
       );
-    } else if (a === "cancel") {
+    } else if (a === "reschedule") {
+      const local = (iso) => new Date(new Date(iso).getTime() + 8 * 3600000).toISOString().slice(0, 16);
+      const otherReservations = { ...state, exchanges: state.exchanges.filter((x) => x.id !== e.id) };
+      const suggested = availableLessonTimes(otherReservations, state.me.slots);
+      const remaining = e.lessons.filter((l) => !l.done);
+      const min = local(new Date(Date.now() + 60000).toISOString());
+      const max = local(new Date(Date.now() + 14 * 86400000).toISOString());
+      const fields = remaining.map((lesson, index) => field(
+        lesson.teacher === "me" ? "我来教" : "TA来教",
+        `<input type="datetime-local" name="time" required min="${min}" max="${max}" value="${suggested[index] ? local(suggested[index]) : ""}" />`,
+      )).join("");
       showDialog(
-        "取消这次交换",
-        `${field("取消原因", '<textarea name="reason" required maxlength="200" placeholder="例如：时间安排发生变化"></textarea>')}<p class="subtle">已完成的课程与学习记录会保留。</p><button class="btn danger-btn full">确认取消</button>`,
+        "重新约定剩余课程",
+        `<p class="subtle">北京时间，未来14天内。已完成课程保持不变。</p>${fields}<button class="btn primary full">模拟双方确认改期</button>`,
+        "reschedule-form",
+        `data-id="${id}"`,
+      );
+    } else if (a === "cancel") {
+      const partiallyDone = e.lessons.some((l) => l.done);
+      showDialog(
+        partiallyDone ? "暂停并协商补课" : "取消这次交换",
+        `${field(partiallyDone ? "改期原因" : "取消原因", '<textarea name="reason" required maxlength="200" placeholder="例如：时间安排发生变化"></textarea>')}<p class="subtle">${partiallyDone ? "已有一方完成分享，剩余课程将转为待协商补课，已完成记录保留。" : "本次邀请将结束。"}</p><button class="btn danger-btn full">${partiallyDone ? "暂停并保留补课事项" : "确认取消"}</button>`,
         "cancel-form",
         `data-id="${id}"`,
       );
@@ -1444,15 +1470,20 @@ document.addEventListener("submit", (ev) => {
       go("/exchange/" + e.id);
       toast("演示邀请已保存");
     } else if (
+      form.id === "reschedule-form" ||
       form.id === "lesson-form" ||
       form.id === "cancel-form" ||
       form.id === "review-form"
     ) {
       const e = state.exchanges.find((e) => e.id === form.dataset.id);
+      if (form.id === "reschedule-form")
+        rescheduleExchange(state, e, f.getAll("time").map((t) => new Date(`${t}:00+08:00`).toISOString()));
       if (form.id === "lesson-form")
         transition(e, "completeLesson", {
           index: Number(form.dataset.index),
           reflection: f.get("reflection"),
+          goalStatus: f.get("goalStatus"),
+          artifact: f.get("artifact"),
         });
       if (form.id === "cancel-form")
         transition(e, "cancel", { reason: f.get("reason") });
@@ -1469,8 +1500,8 @@ document.addEventListener("submit", (ev) => {
         form.id === "review-form"
           ? "交换已完成"
           : form.id === "cancel-form"
-            ? "交换已取消，已有记录已保留"
-            : "本节已模拟完成",
+            ? (e.status === "rescheduling" ? "已保留待协商补课事项" : "交换已取消")
+            : form.id === "reschedule-form" ? "已模拟确认新的课程时间" : "本节成果已保存",
       );
     } else if (form.id === "message-form") {
       const e = state.exchanges.find((e) => e.id === form.dataset.id);
@@ -1529,6 +1560,8 @@ window.addEventListener("hashchange", () => {
   render(() => {
     window.scrollTo(0, 0);
     document.querySelector("#main").focus({ preventScroll: true });
+    if (new URLSearchParams(currentRoute.split("?")[1] || "").get("materials") === "1")
+      document.querySelector(".workshop")?.scrollIntoView({ block: "start" });
   });
 });
 render();
