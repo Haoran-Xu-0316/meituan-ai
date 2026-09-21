@@ -1,11 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <defs>
-    <mask id="exchange-seam">
-      <rect width="64" height="64" fill="white"/>
-      <path d="m35 24-6 16" stroke="black" stroke-width="3"/>
-    </mask>
-  </defs>
-  <rect width="64" height="64" rx="18" fill="#FFD100"/>
-  <path d="M45 17H28C20 17 16 21 16 26C16 31 22 32 32 32C42 32 48 33 48 38C48 43 44 47 36 47H19"
-    stroke="#24271F" stroke-width="8.5" stroke-linecap="round" mask="url(#exchange-seam)"/>
+  <rect width="64" height="64" rx="20" fill="#FFD100"/>
+  <g fill="#24271F">
+    <path d="M26 12H40C45.52 12 50 16.48 50 22V30H41L35 35V30H26C21.03 30 17 25.97 17 21S21.03 12 26 12Z"/>
+    <path d="M38 52H24C18.48 52 14 47.52 14 42V34H23L29 29V34H38C42.97 34 47 38.03 47 43S42.97 52 38 52Z"/>
+  </g>
+  <path d="M26 21H39M25 43H38" stroke="#FFD100" stroke-width="3.5" stroke-linecap="round"/>
 </svg>
