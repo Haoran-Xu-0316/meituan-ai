@@ -17,6 +17,21 @@ export const STATUS = {
   declined: "已拒绝",
   cancelled: "已取消",
 };
+export function exchangeActions(exchange, now = new Date()) {
+  const status = exchange.status;
+  const active = ["pending", "scheduled", "learning", "rescheduling", "review"].includes(status);
+  return {
+    respond: status === "pending",
+    accept: status === "pending" && exchange.lessons.every((lesson) => new Date(lesson.at) > now),
+    communicate: active,
+    reschedule: ["pending", "scheduled", "learning", "rescheduling"].includes(status),
+    cancel: ["pending", "scheduled", "learning"].includes(status),
+    settle: status === "rescheduling",
+    review: status === "review",
+    completeLesson: exchange.lessons.map((lesson, index) =>
+      ["scheduled", "learning"].includes(status) && !lesson.done && exchange.lessons.slice(0, index).every((prior) => prior.done)),
+  };
+}
 export function loadState(storage) {
   try {
     const raw = storage.getItem(STORAGE_KEY);
@@ -265,6 +280,14 @@ export function createExchange(state, p, input, now = new Date()) {
       )
   )
     throw Error("这个时间已有其他交换安排，请换一个时段。");
+  const lessonGoal = (value, fallback) => {
+    const goal = value === undefined ? fallback : value;
+    if (typeof goal !== "string" || !goal.trim() || goal.length > 200)
+      throw Error("请分别确认所选技能的课程目标，不超过200字。");
+    return goal.trim();
+  };
+  const teachGoal = lessonGoal(input.teachGoal, input.teach === state.me.teach[0] ? state.me.goal : "");
+  const learnGoal = lessonGoal(input.learnGoal, input.learn === p.teach[0] ? p.goal : "");
   const id = globalThis.crypto?.randomUUID?.() ?? `exchange-${now.getTime()}`;
   const e = {
     id,
@@ -277,8 +300,8 @@ export function createExchange(state, p, input, now = new Date()) {
     status: "pending",
     createdAt: now.toISOString(),
     lessons: [
-      { at: times[0], teacher: "me", goal: state.me.goal, done: false },
-      { at: times[1], teacher: p.id, goal: p.goal, done: false },
+      { at: times[0], teacher: "me", goal: teachGoal, done: false },
+      { at: times[1], teacher: p.id, goal: learnGoal, done: false },
     ],
     messages: [
       {
@@ -304,7 +327,7 @@ export function artifactUrl(value) {
   return url.href;
 }
 export function rescheduleExchange(state, exchange, times, now = new Date()) {
-  if (!["scheduled", "learning", "rescheduling"].includes(exchange.status))
+  if (!exchangeActions(exchange).reschedule)
     throw Error("当前交换不能改期。");
   const remaining = exchange.lessons.filter((l) => !l.done);
   if (!Array.isArray(times) || times.length !== remaining.length || times.some((t) =>
@@ -317,9 +340,10 @@ export function rescheduleExchange(state, exchange, times, now = new Date()) {
   const conflict = state.exchanges.filter((e) => e.id !== exchange.id && isOpenExchange(e) && e.status !== "rescheduling")
     .some((e) => e.lessons.some((l) => !l.done && times.some((t) => overlaps(t, l.at))));
   if (conflict) throw Error("这个时间已有其他交换安排，请换一个时段。");
+  const awaitingResponse = exchange.status === "pending";
   remaining.forEach((l, i) => { l.at = times[i]; });
-  exchange.status = exchange.lessons.some((l) => l.done) ? "learning" : "scheduled";
-  exchange.messages.push({ by: "partner", text: "已模拟双方确认新的课程时间，已完成的分享与成果保持不变。", demo: true, at: now.toISOString() });
+  exchange.status = awaitingResponse ? "pending" : exchange.lessons.some((l) => l.done) ? "learning" : "scheduled";
+  exchange.messages.push({ by: awaitingResponse ? "me" : "partner", text: awaitingResponse ? "已修改邀请时间，等待对方确认。" : "已模拟双方确认新的课程时间，已完成的分享与成果保持不变。", demo: !awaitingResponse, at: now.toISOString() });
   delete exchange.reason;
 }
 export const DEMO_QUESTIONS = {
@@ -328,7 +352,7 @@ export const DEMO_QUESTIONS = {
   needs: "你想重点练什么？",
 };
 export function askDemoQuestion(e, topic, now = new Date()) {
-  if (!["pending", "scheduled", "learning", "review"].includes(e.status))
+  if (!exchangeActions(e).communicate)
     throw Error("这次交换已结束，不能继续模拟问答。");
   const person = PEOPLE.find((p) => p.id === e.personId);
   if (!person || !Object.hasOwn(DEMO_QUESTIONS, topic)) throw Error("请选择一个有效的课前问题。");
@@ -344,24 +368,38 @@ export function askDemoQuestion(e, topic, now = new Date()) {
   );
   return e;
 }
-export function transition(e, action, payload = {}) {
+export function addExchangeMessage(exchange, text, now = new Date()) {
+  if (!exchangeActions(exchange).communicate) throw Error("交换已结束，不能继续留言。");
+  if (typeof text !== "string" || !text.trim() || text.length > 300)
+    throw Error("请填写1至300字的留言。");
+  exchange.messages.push({ by: "me", text: text.trim(), at: now.toISOString() });
+}
+export function transition(e, action, payload = {}, now = new Date()) {
+  const actions = exchangeActions(e, now);
   if (action === "accept" || action === "decline") {
     if (e.status !== "pending") throw Error("这条邀请已经处理。");
+    if (action === "accept" && !actions.accept)
+      throw Error("邀请中的课程时间已过，请先修改时间再接受。");
     e.status = action === "accept" ? "scheduled" : "declined";
     e.messages.push({
       by: "partner",
       text:
         action === "accept"
-          ? PEOPLE.find((p) => p.id === e.personId)?.context.acceptNote || "邀请收到，两个时间都可以。我们先确认这次的学习目标。"
+          ? `约定收到。我分享${e.learn}：${e.lessons[1].goal}；向你学${e.teach}：${e.lessons[0].goal}`
           : "这次时间不太合适，期待下次一起学习。",
-      at: new Date().toISOString(),
+      at: now.toISOString(),
       demo: true,
     });
+  } else if (action === "settle") {
+    if (!actions.settle) throw Error("只有待协商补课的交换可以协商结束。");
+    if (!payload.reason?.trim()) throw Error("请记录双方同意结束的原因。");
+    e.reason = payload.reason.trim().slice(0, 200);
+    e.resolution = "mutual-end";
+    e.status = "cancelled";
+    e.messages.push({ by: "partner", text: "已模拟双方同意结束剩余课程。已完成的分享与学习记录保留，未完成课程不计为完成。", demo: true, at: now.toISOString() });
   } else if (action === "cancel") {
-    if (["completed", "declined", "cancelled"].includes(e.status))
-      throw Error("这次交换已经结束。");
+    if (!actions.cancel) throw Error("当前状态不能取消，请处理补课事项或查看已有记录。");
     if (!payload.reason?.trim()) throw Error("请填写取消原因。");
-    if (e.status === "review") throw Error("课程已完成，请记录评价。");
     e.status = e.lessons.some((l) => l.done) ? "rescheduling" : "cancelled";
     e.reason = payload.reason.trim().slice(0, 200);
   } else if (action === "completeLesson") {
@@ -369,6 +407,7 @@ export function transition(e, action, payload = {}) {
       throw Error("请先确认交换安排。");
     const lesson = e.lessons[payload.index];
     if (!lesson || lesson.done) throw Error("这节课程已经完成或不存在。");
+    if (!actions.completeLesson[payload.index]) throw Error("请先完成前一节课程。");
     const goalStatus = payload.goalStatus || "achieved";
     if (!["achieved", "needs-help"].includes(goalStatus)) throw Error("请选择目标完成情况。");
     if (goalStatus === "needs-help" && !payload.reflection?.trim()) throw Error("请写下还需要帮助的内容。");
@@ -377,7 +416,7 @@ export function transition(e, action, payload = {}) {
     lesson.artifact = artifact;
     lesson.done = true;
     lesson.reflection = (payload.reflection || "").slice(0, 200);
-    lesson.completedAt = new Date().toISOString();
+    lesson.completedAt = now.toISOString();
     e.status = e.lessons.every((l) => l.done) ? "review" : "learning";
   } else if (action === "review") {
     if (e.status !== "review" || e.review)
@@ -389,11 +428,16 @@ export function transition(e, action, payload = {}) {
       !payload.text?.trim()
     )
       throw Error("请选择评分并写下学习收获。");
+    const tags = payload.tags || [];
+    if (!Array.isArray(tags) || tags.some((tag) => !["讲解清楚", "耐心友好", "目标达成"].includes(tag)))
+      throw Error("请选择有效的评价标签。");
+    if (tags.includes("目标达成") && e.lessons.some((lesson) => lesson.goalStatus === "needs-help"))
+      throw Error("仍有目标需要帮助，不能标记目标全部达成。");
     e.review = {
       rating: payload.rating,
       text: payload.text.trim().slice(0, 300),
-      tags: payload.tags || [],
-      at: new Date().toISOString(),
+      tags: [...new Set(tags)],
+      at: now.toISOString(),
     };
     e.status = "completed";
   } else throw Error("不支持的操作。");
