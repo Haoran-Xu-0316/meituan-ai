@@ -156,12 +156,13 @@ a .icon {
   flex: 0 0 auto;
 }
 .brand-word {
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
   color: #24271f;
-  font-weight: 750;
+  font-weight: 650;
   letter-spacing: -0.035em;
   line-height: 1;
 }
-.brand-word > span { font-weight: 680; }
+.brand-word > span { font-weight: inherit; }
 .brand .brand-symbol { width: 36px; height: 36px; }
 .nav-caption {
   font-size: 11px;
