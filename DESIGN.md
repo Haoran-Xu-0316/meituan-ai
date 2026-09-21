@@ -73,3 +73,8 @@ Reference: https://threeui.com/three-js/holographic-glitter-card
 Supported browsers capture old and new component states through View Transitions. Cards retain a stable visual identity and interpolate position and size when filtering; removed cards fade out. Page content has coordinated exit and entry, and publishing panels interpolate their height while steps slide in the appropriate direction. Navigation and the hero remain separate stable layers.
 
 A revision-aware renderer skips superseded requests and restores scrolling or focus only after the current DOM commit. Native snapshot transitions suppress duplicate card entrances; older browsers retain the existing liquid and disclosure fallback. Reduced motion bypasses scene transitions.
+
+
+## Brand mark
+
+The SkillPal mark uses two rounded return arrows that form an open exchange loop. The graphite symbol sits on the Meituan-yellow rounded tile, with generous negative space for small-size readability. The wordmark pairs a heavier Skill with a lighter Pal. The sidebar, mobile header, footer and SVG favicon share assets/skillpal-mark.svg; the old generic exchange icon and decorative dot are removed from the brand lockup.
