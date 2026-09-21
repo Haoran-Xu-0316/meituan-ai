@@ -161,3 +161,24 @@ html[data-motion="off"] .skill-card, html[data-motion="off"] .btn, html[data-mot
 @supports not (backdrop-filter: blur(1px)) {
   .topbar, .sidebar, .mobile-nav, .cover-copy, .favorite { background: #fffffff5; }
 }
+
+/* A single liquid surface travels under stable, readable controls. */
+.liquid-group { position: relative; isolation: isolate; }
+.liquid-group > a, .liquid-group > button { position: relative; z-index: 1; }
+.liquid-indicator { position: absolute; z-index: 0; pointer-events: none; transform-origin: top left; border-radius: 12px; background: linear-gradient(130deg, #ffe67c, #ffd226); box-shadow: inset 0 1px 0 #fff9, inset 0 -1px 1px #ba900022, 0 4px 12px #c8a11918; }
+.sidebar nav.liquid-group .nav-link.active { background: transparent; box-shadow: none; }
+.category-tabs.liquid-group { gap: 5px; padding: 5px; background: #e9eae680; border: 1px solid #e5e6df; border-radius: 16px; }
+.category-tabs.liquid-group .category { background: transparent; box-shadow: none; transition: color .2s; }
+.category-tabs.liquid-group .category.selected { color: #2c2815; }
+html[data-motion="on"] .category-tabs.liquid-group .category:hover { transform: none; box-shadow: none; }
+.segmented.liquid-group button.selected { background: transparent; box-shadow: none; }
+.segmented.liquid-group .liquid-indicator { background: linear-gradient(130deg, #fff, #fff8d9); border: 1px solid #ffffffc9; }
+.mobile-nav.liquid-group { position: fixed; }
+.mobile-nav.liquid-group > a { gap: 5px; }
+.mobile-nav.liquid-group a.active .icon { background: transparent; box-shadow: none; }
+.mobile-nav.liquid-group .liquid-indicator { border-radius: 14px; }
+details > summary { -webkit-tap-highlight-color: transparent; }
+@media (max-width: 700px) {
+  .category-tabs.liquid-group { gap: 2px; }
+  .category-tabs.liquid-group .category { padding: 10px 13px; }
+}
