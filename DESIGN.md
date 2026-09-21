@@ -77,4 +77,4 @@ A revision-aware renderer skips superseded requests and restores scrolling or fo
 
 ## Brand mark
 
-The SkillPal mark is a custom S drawn as a continuous rounded ribbon with a diagonal seam. Its two complementary halves represent reciprocal skill sharing while the silhouette identifies SkillPal. The graphite symbol sits on a Meituan-yellow rounded tile and remains legible at favicon size. The wordmark uses a heavier Skill and lighter Pal. Sidebar, mobile header, footer and favicon share assets/skillpal-mark.svg. Desktop mark size is 36px, mobile 32px and footer 22px.
+The SkillPal mark pairs two rounded dialogue bubbles pointing toward each other. Short negative-space message strokes keep the dense silhouette readable, while the opposing contours suggest an S. The design foregrounds exchange between people, using graphite and Meituan yellow. The slightly softened wordmark pairs a heavier Skill with a lighter Pal. Sidebar, mobile header, footer and favicon share assets/skillpal-mark.svg, at 36px, 32px and 22px respectively.
