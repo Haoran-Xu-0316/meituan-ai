@@ -75,6 +75,7 @@ export function mountMotion(root) {
         observer.unobserve(card);
         if (!changedCollection && seenCards.has(card.dataset.scene)) return;
         seenCards.add(card.dataset.scene);
+        if (document.documentElement.dataset.sceneTransition === 'on') return;
         animate(card, [{ opacity: 0.5, translate: '0 12px', scale: '0.985' }, { opacity: 1, translate: '0 0', scale: '1' }], {
           duration: 360, delay: Math.min(index, 3) * 30, fill: 'backwards', easing: 'cubic-bezier(.16,1,.3,1)',
         });
