@@ -1,4 +1,4 @@
-import { captureTransition, mountTransitions, createSceneRenderer, nameSceneElements } from "./transitions.mjs";
+import { captureTransition, mountTransitions, createSceneRenderer, nameSceneElements, captureReadingState, restoreReadingState } from "./transitions.mjs?v=continuity-14";
 import { mountMotion } from "./motion.mjs";
 import { WORKSHOPS, workshopText } from "../data/workshops.mjs";
 import {
@@ -16,6 +16,7 @@ import {
   saveState,
   match,
   matches,
+  partnerAction,
   validatePost,
   createExchange,
   rescheduleExchange,
@@ -27,7 +28,7 @@ import {
   STATUS,
   availableLessonTimes,
   beijingDate,
-} from "./model.mjs?v=logic-10";
+} from "./model.mjs?v=continuity-14";
 const paths = {
   discover: "M3 10l9-7 9 7v10a1 1 0 01-1 1h-5v-7H9v7H4a1 1 0 01-1-1z",
   match: "M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4",
@@ -124,6 +125,9 @@ const persist = () => {
 const route = () => location.hash.slice(1) || "/discover";
 let previousRoute = route();
 const personReturnRoutes = new Map();
+const readingStates = new Map();
+let showSearchResults = false;
+if ("scrollRestoration" in history) history.scrollRestoration = "manual";
 const go = (path) => {
   if (route() === path) render();
   else location.hash = path;
@@ -431,6 +435,7 @@ function discover() {
 }
 function matchCard(m, featured = false) {
   const p = m.person;
+  const action = partnerAction(state, p);
   const [photo, description, position] = PARTNER_COVERS[p.id];
   const saved = state.favorites.includes(p.id);
   const time = m.slots.length ? "共同常用：" + m.slots.map(slotLabel).join("、") : "时间待协商";
@@ -447,7 +452,7 @@ function matchCard(m, featured = false) {
       <p class="match-reciprocal">你也能帮TA：${escape(p.learnGoal)}</p>
       <div class="match-facts"><span class="match-availability ${m.slots.length ? "available" : ""}">${icon("clock")}${escape(time)}</span><span>${escape(m.formats[0])}，每人45分钟</span></div>
       <details class="match-explanation"><summary>为什么适合彼此${icon("chevron")}</summary><p>你教${escape(m.teach.join("、"))}，向TA学${escape(m.learn.join("、"))}。${m.fit === 2 ? "双方基础符合教学要求。" : "开始前需要确认教学难度。"}${m.slots.length ? "有共同常用时段，具体日期以邀请确认为准。" : "技能互补，具体时间需要再协商。"}</p></details>
-      <div class="match-actions"><a class="btn ${featured ? "primary" : "dark"}" href="#/invite/${p.id}">发起交换${icon("arrow")}</a><a class="text-btn" href="#/person/${p.id}">查看课程</a></div>
+      <div class="match-actions"><a class="btn ${featured ? "primary" : "dark"}" href="#${action.path}">${action.label}${icon("arrow")}</a><a class="text-btn" href="#/person/${p.id}">查看课程</a></div>
     </div>
   </article>`;
 }
@@ -503,14 +508,19 @@ function lessonPlan(p) {
 }
 function detail(p) {
   const m = match(state.me, p);
-  const actionPath = m.eligible ? "/invite/" + p.id : "/publish?return=" + p.id;
-  const actionLabel = m.eligible ? "发起技能交换" : "调整供需后交换";
+  const action = partnerAction(state, p);
+  const actionPath = action.path;
+  const actionLabel = action.label === "发起交换" ? "发起技能交换" : action.label;
   const reasons = [];
-  if (!state.me.active) reasons.push("你的技能已暂停，请先重新发布。");
-  else if (!m.teach.length || !m.learn.length) reasons.push("双方技能需求尚未互补，调整供需后再交换。");
-  else reasons.push(`你教${m.teach.join("、")}，向TA学${m.learn.join("、")}。`);
-  if (!m.formats.length) reasons.push("暂时没有共同教学形式。");
-  if (m.fit !== 2) reasons.push("开始前请确认教学难度是否适合彼此。");
+  if (actionPath.startsWith('/exchange/')) {
+    reasons.push("你们已有进行中的交换，可继续处理已保存的约定。");
+  } else {
+    if (!state.me.active) reasons.push("你的技能已暂停，请先重新发布。");
+    else if (!m.teach.length || !m.learn.length) reasons.push("双方技能需求尚未互补，调整供需后再交换。");
+    else reasons.push(`你教${m.teach.join("、")}，向TA学${m.learn.join("、")}。`);
+    if (!m.formats.length) reasons.push("暂时没有共同教学形式。");
+    if (m.fit !== 2) reasons.push("开始前请确认教学难度是否适合彼此。");
+  }
   const [detailPhoto, detailDescription, detailPosition] = PARTNER_COVERS[p.id];
   return `${back()}
     <div class="partner-panorama"><img src="assets/photos/${detailPhoto}.webp" alt="AI生成场景：${detailDescription}" style="object-position:${detailPosition}" width="1536" height="1024" /><span class="photo-label">AI场景</span><div><span>一起练习</span><strong>${escape(p.teach.join("、"))}</strong></div></div>
@@ -1040,7 +1050,7 @@ function profile() {
       </div>
     </section>
     <div class="section-heading">
-      <h2>
+      <h2 class="favorites-heading" tabindex="-1">
         收藏的伙伴<span class="count-label">${state.favorites.length}</span>
       </h2>
     </div>
@@ -1075,6 +1085,8 @@ const render = createSceneRenderer(document, paint);
 function paint() {
   const snapshot = captureTransition(app);
   disposeMotion();
+  const previousMain = app.querySelector('main');
+  const reading = previousMain?.dataset.route === route() ? captureReadingState(previousMain, window.scrollY) : null;
   const focused = document.activeElement;
   const focusSelector = focused?.id
     ? `#${CSS.escape(focused.id)}`
@@ -1120,6 +1132,7 @@ function paint() {
   const main = app.querySelector('main');
   const previousIntro = main.dataset.view === 'discover' && part === 'discover' ? main.querySelector('.discovery-intro') : null;
   main.dataset.view = part;
+  main.dataset.route = route();
   main.dataset.transitionKey = `${route()}:${part.startsWith('publish') ? step : part === 'discover' ? filter.category : part === 'exchanges' ? exchangeTab : ''}`;
   app.querySelectorAll('.sidebar nav a, .mobile-nav a').forEach(link => {
     const active = link.getAttribute('href') === `#/${part}`;
@@ -1155,6 +1168,7 @@ function paint() {
     `;
   const nextIntro = main.querySelector('.discovery-intro');
   if (previousIntro && previousIntro.dataset.profileKey === nextIntro?.dataset.profileKey) nextIntro.replaceWith(previousIntro);
+  restoreReadingState(main, reading);
   const disposeEffects = mountMotion(app);
   const disposeTransitions = mountTransitions(app, snapshot);
   disposeMotion = () => { disposeEffects(); disposeTransitions(); };
@@ -1268,7 +1282,21 @@ document.addEventListener("click", (ev) => {
         : [...state.favorites, id];
       persist();
       const saved = state.favorites.includes(id);
-      render();
+      if (route() === "/profile") {
+        const nextId = button.closest('.skill-card')?.nextElementSibling?.dataset.scene;
+        render(() => {
+          const target = nextId ? app.querySelector(`[data-action="favorite"][data-id="${CSS.escape(nextId)}"]`) : app.querySelector('.favorites-heading');
+          target?.focus({ preventScroll: true });
+        });
+      } else {
+        const person = PEOPLE.find(person => person.id === id);
+        app.querySelectorAll(`[data-action="favorite"][data-id="${CSS.escape(id)}"]`).forEach(control => {
+          control.setAttribute('aria-pressed', String(saved));
+          control.setAttribute('aria-label', `${saved ? "取消收藏" : "收藏"}${person.name}`);
+          control.classList.toggle('saved', saved);
+          if (!control.classList.contains('favorite')) control.innerHTML = icon('heart') + (saved ? "已收藏" : "收藏");
+        });
+      }
       toast(saved ? "已收藏伙伴" : "已取消收藏");
     } else if (a === "category") {
       filter.category = button.dataset.value;
@@ -1403,7 +1431,13 @@ document.addEventListener("submit", (ev) => {
   try {
     if (form.id === "search-form") {
       filter.q = f.get("q").trim();
-      go("/discover");
+      readingStates.delete('/discover');
+      if (route() === '/discover') {
+        render(() => document.querySelector('#discover-title')?.scrollIntoView({ block: 'start' }));
+      } else {
+        showSearchResults = true;
+        go("/discover");
+      }
     } else if (form.id === "publish-form") {
       captureDraft(form);
       if (step === 1) {
@@ -1510,6 +1544,7 @@ document.addEventListener("submit", (ev) => {
       toast("资料已保存");
     } else if (form.id === "reset-form") {
       state = initialState();
+      readingStates.clear();
       draft = null;
       step = 1;
       filter = { q: "", category: "全部", format: "", slot: "", mutual: false };
@@ -1531,6 +1566,10 @@ app.addEventListener("click", (ev) => {
 });
 window.addEventListener("hashchange", () => {
   const currentRoute = route();
+  disposeMotion();
+  const currentMain = app.querySelector('main');
+  if (currentMain?.dataset.route) readingStates.set(currentMain.dataset.route, captureReadingState(currentMain, window.scrollY));
+  const reading = readingStates.get(currentRoute);
   if (currentRoute.startsWith("/person/") && /^\/(discover|matches|profile|exchange\/)/.test(previousRoute)) {
     personReturnRoutes.set(currentRoute.split("/")[2], previousRoute);
   }
@@ -1538,8 +1577,14 @@ window.addEventListener("hashchange", () => {
   history.replaceState({ skillpal: true }, "");
   dialog.close();
   render(() => {
-    window.scrollTo(0, 0);
-    document.querySelector("#main").focus({ preventScroll: true });
+    const main = document.querySelector("#main");
+    restoreReadingState(main, reading);
+    window.scrollTo(0, reading?.scrollY || 0);
+    main.focus({ preventScroll: true });
+    if (showSearchResults && currentRoute === '/discover') {
+      document.querySelector('#discover-title')?.scrollIntoView({ block: 'start' });
+      showSearchResults = false;
+    }
     if (new URLSearchParams(currentRoute.split("?")[1] || "").get("materials") === "1")
       document.querySelector(".workshop")?.scrollIntoView({ block: "start" });
   });
