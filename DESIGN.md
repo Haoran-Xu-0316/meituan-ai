@@ -77,4 +77,4 @@ A revision-aware renderer skips superseded requests and restores scrolling or fo
 
 ## Brand mark
 
-The SkillPal mark pairs two rounded dialogue bubbles pointing toward each other. Short negative-space message strokes keep the dense silhouette readable, while the opposing contours suggest an S. The design foregrounds exchange between people, using graphite and Meituan yellow. The slightly softened wordmark pairs a heavier Skill with a lighter Pal. Sidebar, mobile header, footer and favicon share assets/skillpal-mark.svg, at 36px, 32px and 22px respectively.
+The SkillPal mark is a single open S monogram with broad curves and a diagonal connection, set inside a Meituan-yellow rounded square. The reduced silhouette avoids tiny counters, message strokes and arrowheads at small sizes. The wordmark uses Avenir Next when available, falling back to Segoe UI and sans-serif, with consistent weight across Skill and Pal. Sidebar, mobile header, footer and favicon share assets/skillpal-mark.svg, at 36px, 32px and 22px respectively.
