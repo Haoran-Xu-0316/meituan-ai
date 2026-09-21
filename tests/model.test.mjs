@@ -121,7 +121,7 @@ test("exchange enforces accept, two lessons, then one review", () => {
   assert.throws(() => transition(e, "review", { rating: 5, text: "again" }));
   assert.throws(() => transition(e, "cancel", { reason: "later" }));
 });
-test("cancellation preserves completed lesson and needs reason", () => {
+test("pausing a partial exchange preserves completed work and needs a reason", () => {
   const { e } = scenario();
   transition(e, "accept");
   transition(e, "completeLesson", { index: 0, reflection: "构图练习" });
@@ -129,7 +129,7 @@ test("cancellation preserves completed lesson and needs reason", () => {
   transition(e, "cancel", { reason: "时间变化" });
   assert.equal(e.lessons[0].done, true);
   assert.equal(e.lessons[0].reflection, "构图练习");
-  assert.equal(e.status, "cancelled");
+  assert.equal(e.status, "rescheduling");
   assert.throws(() => transition(e, "completeLesson", { index: 1 }));
 });
 test("decline is terminal and frees a new invitation", () => {
