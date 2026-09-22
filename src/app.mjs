@@ -1,4 +1,5 @@
-import { captureTransition, mountTransitions, createSceneRenderer, nameSceneElements, captureReadingState, restoreReadingState } from "./transitions.mjs?v=continuity-14";
+import { captureTransition, mountTransitions, createSceneRenderer, nameSceneElements, captureReadingState, restoreReadingState } from "./transitions.mjs?v=refinement-16";
+import { createFormDraftStore } from "./form-state.mjs?v=refinement-16";
 import { mountMotion } from "./motion.mjs";
 import { WORKSHOPS, workshopText } from "../data/workshops.mjs";
 import {
@@ -30,7 +31,7 @@ import {
   STATUS,
   availableLessonTimes,
   beijingDate,
-} from "./model.mjs?v=drafts-15";
+} from "./model.mjs?v=refinement-16";
 const paths = {
   discover: "M3 10l9-7 9 7v10a1 1 0 01-1 1h-5v-7H9v7H4a1 1 0 01-1-1z",
   match: "M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4",
@@ -128,6 +129,7 @@ const route = () => location.hash.slice(1) || "/discover";
 let previousRoute = route();
 const personReturnRoutes = new Map();
 const readingStates = new Map();
+const exchangeFormDrafts = createFormDraftStore();
 let showSearchResults = false;
 if ("scrollRestoration" in history) history.scrollRestoration = "manual";
 const go = (path) => {
@@ -870,14 +872,9 @@ function exchanges() {
             )
             .join("")}
         </div>`
-      : empty(
-          "这里还没有交换记录",
-          exchangeTab === "全部"
-            ? "找一位互相需要的伙伴，开始你的第一次交换。"
-            : "切换分类，查看其他交换。",
-          "/matches",
-          "寻找技能伙伴",
-        )}`;
+      : state.exchanges.length && exchangeTab !== "全部"
+        ? `<div class="empty">${icon("leaf")}<h2>暂无${exchangeTab}的交换</h2><p>其他分类中有你的交换记录。</p><button class="btn primary" data-action="exchange-tab" data-value="全部">查看全部交换${icon("arrow")}</button></div>`
+        : empty("这里还没有交换记录", "找一位互相需要的伙伴，开始你的第一次交换。", "/matches", "寻找技能伙伴")}`;
 }
 function exchangeDetail(e) {
   const p = PEOPLE.find((x) => x.id === e.personId);
@@ -906,7 +903,7 @@ function exchangeDetail(e) {
   }${e.reason ? /* HTML */ `<div class="notice">${icon("info")}${e.resolution === "mutual-end" ? "协商结束原因" : e.status === "rescheduling" ? "改期原因" : "取消原因"}：${escape(e.reason)}</div>` : ""}${!end && e.lessons.some((l) => l.done) && !e.lessons.every((l) => l.done) ? `<section class="exchange-followup"><div><strong>${exchangeNextStep(e)}</strong><p>${e.status === "rescheduling" ? "原预约已暂停，已完成的课程与成果保留。重新约定剩余课程后继续。" : "双方的分享都完成后，这次交换才算完成。"}</p></div><button class="btn secondary small" data-action="reschedule" data-id="${e.id}">重新约时间${icon("arrow")}</button></section>` : ""}<div class="detail-layout"><div><section class="panel"><div class="section-heading compact"><h2>我们的两节课</h2><span class="subtle">北京时间，每节45分钟</span></div><div class="lesson-list">${e.lessons
     .map(
       (l, i) =>
-        /* HTML */ `<article class="lesson ${l.done ? "done" : ""}">
+        /* HTML */ `<article class="lesson ${l.done ? "done" : ""}" data-state="${l.done ? "completed" : end ? "ended" : e.status === "pending" ? "pending" : e.status === "rescheduling" ? "rescheduling" : actions.completeLesson[i] ? "ready" : "locked"}">
           <div class="lesson-number">${l.done ? icon("check") : i + 1}</div>
           <div class="lesson-main">
             <div class="lesson-title">
@@ -915,7 +912,7 @@ function exchangeDetail(e) {
                   l.teacher === "me" ? e.teach : e.learn,
                 )}
               </h3>
-              ${pill(l.done ? "已完成" : end ? "未进行" : "待完成", l.done ? "green" : "")}
+              ${pill(l.done ? "已完成" : end ? "未进行" : e.status === "pending" ? "等待回应" : e.status === "rescheduling" ? "待改期" : actions.completeLesson[i] ? "可记录成果" : "前序未完成", l.done ? "green" : "")}
             </div>
             <time>${timeText(l.at)}${!l.done && end ? "（原预约，已结束）" : e.status === "rescheduling" && !l.done ? "（原预约，待改期）" : ""}</time>
             <p class="lesson-goal"><span>约定成果</span>${escape(l.goal)}</p>
@@ -985,7 +982,6 @@ function exchangeDetail(e) {
   }${
     e.review
       ? /* HTML */ `<section class="panel">
-          <span class="eyebrow">交换已完成</span>
           <h2>交换已完成</h2>
           <div class="review-sample">
             <span class="stars">${"★".repeat(e.review.rating)}</span>
@@ -1012,7 +1008,7 @@ function exchangeDetail(e) {
     )
     .join(
       "",
-    )}</div>${!end ? /* HTML */ `<form id="message-form" data-id="${e.id}" class="message-form"><label class="sr-only" for="message-input">写下留言</label><input id="message-input" name="text" required maxlength="300" placeholder="写下想交流的问题…" /><button class="btn primary" aria-label="保存演示留言">${icon("arrow")}</button></form>` : ""}</section></div><aside class="panel exchange-aside"><h2>交换约定</h2><div class="person-line">${avatar(p)}<div><strong>${escape(p.name)}</strong><span>演示伙伴</span></div></div><dl class="agreement"><dt>我分享</dt><dd>${escape(e.teach)}</dd><dt>我学习</dt><dd>${escape(e.learn)}</dd><dt>交流方式</dt><dd>${escape(e.format)}</dd><dt>交换费用</dt><dd>免费，双方各分享45分钟</dd></dl><p class="subtle">约定已保存，之后修改个人技能不会改变本次交换。</p>${actions.reschedule && !e.lessons.some((l) => l.done) ? `<button class="btn secondary small" data-action="reschedule" data-id="${e.id}">修改课程时间</button>` : ""}${actions.settle ? `<button class="text-btn danger" data-action="settle" data-id="${e.id}">协商结束交换</button>` : ""}${actions.cancel ? /* HTML */ `<button class="text-btn danger" data-action="cancel" data-id="${e.id}">${e.status === "pending" ? "撤回邀请" : e.lessons.some((l) => l.done) ? "暂停并协商补课" : "取消交换"}</button>` : ""}</aside></div>`;
+    )}</div>${!end ? /* HTML */ `<form id="message-form" data-id="${e.id}" class="message-form"><label class="sr-only" for="message-input">写下留言</label><input id="message-input" name="text" required maxlength="300" placeholder="写下想交流的问题…" /><button class="btn primary" aria-label="保存演示留言">${icon("arrow")}</button></form><div id="message-error" class="form-error" role="alert"></div>` : ""}</section></div><aside class="panel exchange-aside"><h2>交换约定</h2><div class="person-line">${avatar(p)}<div><strong>${escape(p.name)}</strong><span>演示伙伴</span></div></div><dl class="agreement"><dt>我分享</dt><dd>${escape(e.teach)}</dd><dt>我学习</dt><dd>${escape(e.learn)}</dd><dt>交流方式</dt><dd>${escape(e.format)}</dd><dt>交换费用</dt><dd>免费，双方各分享45分钟</dd></dl><p class="subtle">约定已保存，之后修改个人技能不会改变本次交换。</p>${actions.reschedule && !e.lessons.some((l) => l.done) ? `<button class="btn secondary small" data-action="reschedule" data-id="${e.id}">修改课程时间</button>` : ""}${actions.settle ? `<button class="text-btn danger" data-action="settle" data-id="${e.id}">协商结束交换</button>` : ""}${actions.cancel ? /* HTML */ `<button class="text-btn danger" data-action="cancel" data-id="${e.id}">${e.status === "pending" ? "撤回邀请" : e.lessons.some((l) => l.done) ? "暂停并协商补课" : "取消交换"}</button>` : ""}</aside></div>`;
 }
 function profile() {
   const m = state.me;
@@ -1099,6 +1095,7 @@ function paint() {
   const snapshot = captureTransition(app);
   disposeMotion();
   const previousMain = app.querySelector('main');
+  exchangeFormDrafts.capture(previousMain);
   const reading = previousMain?.dataset.route === route() ? captureReadingState(previousMain, window.scrollY) : null;
   const focused = document.activeElement;
   const focusSelector = focused?.id
@@ -1182,6 +1179,7 @@ function paint() {
   const nextIntro = main.querySelector('.discovery-intro');
   if (previousIntro && previousIntro.dataset.profileKey === nextIntro?.dataset.profileKey) nextIntro.replaceWith(previousIntro);
   restoreReadingState(main, reading);
+  exchangeFormDrafts.restore(main);
   const disposeEffects = mountMotion(app);
   const disposeTransitions = mountTransitions(app, snapshot);
   disposeMotion = () => { disposeEffects(); disposeTransitions(); };
@@ -1224,7 +1222,7 @@ function clearFormError(form) {
     node.removeAttribute("aria-invalid");
     node.removeAttribute("aria-describedby");
   });
-  const region = form.querySelector(".form-error");
+  const region = form.querySelector(".form-error") || (form.id === "message-form" ? document.querySelector("#message-error") : null);
   if (region) region.textContent = "";
 }
 function formError(form, error) {
@@ -1242,11 +1240,11 @@ function formError(form, error) {
     [/时间|课程不能重叠/, "time1"],
     [/邀请说明/, "note"],
     [/取消原因/, "reason"],
-    [/收获|评分/, "text"],
+    [/收获|评分|留言/, "text"],
   ];
   const name = error.field || rules.find(([pattern]) => pattern.test(message))?.[1];
   const input = name ? form.querySelector(`[name="${name}"]`) : null;
-  const region = form.querySelector(".form-error");
+  const region = form.querySelector(".form-error") || (form.id === "message-form" ? document.querySelector("#message-error") : null);
   if (region) region.textContent = message;
   if (input) {
     const group = input.closest("fieldset") || input.closest(".field");
@@ -1260,6 +1258,10 @@ function formError(form, error) {
       input.setAttribute("aria-describedby", hint.id);
       input.focus();
       group.scrollIntoView({ block: "center" });
+    } else {
+      input.setAttribute("aria-invalid", "true");
+      if (region?.id) input.setAttribute("aria-describedby", region.id);
+      input.focus();
     }
   } else if (region) {
     region.setAttribute("tabindex", "-1");
@@ -1385,7 +1387,7 @@ document.addEventListener("click", (ev) => {
       const max = local(new Date(Date.now() + 14 * 86400000).toISOString());
       const fields = remaining.map((lesson, index) => field(
         lesson.teacher === "me" ? "我来教" : "TA来教",
-        `<input type="datetime-local" name="time" required min="${min}" max="${max}" value="${suggested[index] ? local(suggested[index]) : ""}" />`,
+        `<input type="datetime-local" name="time${index + 1}" required min="${min}" max="${max}" value="${suggested[index] ? local(suggested[index]) : ""}" />`,
       )).join("");
       showDialog(
         e.status === "pending" ? "修改邀请时间" : "重新约定剩余课程",
@@ -1528,7 +1530,7 @@ document.addEventListener("submit", (ev) => {
       const e = state.exchanges.find((e) => e.id === form.dataset.id);
       if (form.id === "settle-form") transition(e, "settle", { reason: f.get("reason") });
       if (form.id === "reschedule-form")
-        rescheduleExchange(state, e, f.getAll("time").map((t) => new Date(`${t}:00+08:00`).toISOString()));
+        rescheduleExchange(state, e, e.lessons.filter(lesson => !lesson.done).map((_, index) => `${f.get(`time${index + 1}`)}:00+08:00`));
       if (form.id === "lesson-form")
         transition(e, "completeLesson", {
           index: Number(form.dataset.index),
@@ -1558,9 +1560,10 @@ document.addEventListener("submit", (ev) => {
     } else if (form.id === "message-form") {
       const e = state.exchanges.find((e) => e.id === form.dataset.id);
       addExchangeMessage(e, f.get("text"));
+      form.reset();
       persist();
-      render();
-      toast("留言已保存到本机");
+      render(() => document.querySelector("#message-input")?.focus({ preventScroll: true }));
+      toast(storageFailed ? "留言暂未保存，请勿关闭此页" : "留言已保存到本机");
     } else if (form.id === "profile-form") {
       if (!f.get("name").trim() || !f.get("bio").trim())
         throw Error("昵称与介绍不能为空。");
@@ -1577,6 +1580,8 @@ document.addEventListener("submit", (ev) => {
     } else if (form.id === "reset-form") {
       state = initialState();
       readingStates.clear();
+      app.querySelectorAll("#message-form, #review-form").forEach(form => form.reset());
+      exchangeFormDrafts.clear();
       draft = null;
       step = 1;
       filter = { q: "", category: "全部", format: "", slot: "", mutual: false };
