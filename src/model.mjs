@@ -45,19 +45,21 @@ export function loadState(storage) {
     )
       throw Error();
     validatePost(s.me);
-    validateSavedState(s);
+    const removedExchanges = validateSavedState(s);
+    const warnings = removedExchanges ? [`有${removedExchanges}条交换记录无法读取，已单独移除；其他记录、资料和收藏均保留。`] : [];
     if (Object.hasOwn(s, "inviteDrafts")) s.inviteDrafts = restoreInviteDrafts(s.inviteDrafts);
     if (s.draft) {
       const restored = restoreDraft(s.draft, s.me);
       if (!restored) {
         s.draft = null;
         s.draftStep = 1;
-        return { state: s, warning: "未完成的草稿无法读取，已清除草稿。已发布资料、收藏和交换记录均保留。" };
+        warnings.push("未完成的草稿无法读取，已清除草稿。已发布资料、收藏和正常交换记录均保留。");
+      } else {
+        s.draft = restored;
+        s.draftStep = [1, 2, 3].includes(s.draftStep) ? s.draftStep : 1;
       }
-      s.draft = restored;
-      s.draftStep = [1, 2, 3].includes(s.draftStep) ? s.draftStep : 1;
     }
-    return { state: s };
+    return warnings.length ? { state: s, warning: warnings.join(" ") } : { state: s };
   } catch {
     return {
       state: initialState(),
@@ -132,43 +134,53 @@ function validateSavedState(s) {
     s.favorites.some((id) => !ids.has(id))
   )
     throw Error("Invalid profile");
-  for (const e of s.exchanges) {
-    if (
-      !e.id ||
-      !ids.has(e.personId) ||
-      !STATUS[e.status] ||
-      !SKILLS[e.teach] ||
-      !SKILLS[e.learn] ||
-      !Array.isArray(e.lessons) ||
-      e.lessons.length !== 2 ||
-      !Array.isArray(e.messages)
-    )
-      throw Error("Invalid exchange");
-    if (
-      e.lessons.some(
-        (l) =>
-          !Number.isFinite(Date.parse(l.at)) ||
-          typeof l.done !== "boolean" ||
-          typeof l.goal !== "string" ||
-          (l.goalStatus !== undefined && !["achieved", "needs-help"].includes(l.goalStatus)) ||
-          (l.artifact !== undefined && artifactUrl(l.artifact) !== l.artifact),
-      ) ||
-      e.messages.some(
-        (m) => typeof m.text !== "string" || !Number.isFinite(Date.parse(m.at)),
-      )
-    )
-      throw Error("Invalid lesson");
-    if (
-      e.review &&
-      (!Array.isArray(e.review.tags) ||
-        typeof e.review.text !== "string" ||
-        !Number.isInteger(e.review.rating) ||
-        e.review.rating < 1 ||
-        e.review.rating > 5)
-    )
-      throw Error("Invalid review");
-  }
+  // One damaged agreement must not erase unrelated local work.
+  const seen = new Set();
+  const originalCount = s.exchanges.length;
+  s.exchanges = s.exchanges.filter((exchange) => {
+    try {
+      validateSavedExchange(exchange, ids);
+      if (seen.has(exchange.id)) return false;
+      seen.add(exchange.id);
+      return true;
+    } catch {
+      return false;
+    }
+  });
+  return originalCount - s.exchanges.length;
 }
+function validateSavedExchange(e, partnerIds) {
+  if (!e || typeof e.id !== "string" || !e.id ||
+    !partnerIds.has(e.personId) || !Object.hasOwn(STATUS, e.status) ||
+    !Object.hasOwn(SKILLS, e.teach) || !Object.hasOwn(SKILLS, e.learn) ||
+    !FORMATS.includes(e.format) || !Array.isArray(e.lessons) ||
+    e.lessons.length !== 2 || !Array.isArray(e.messages))
+    throw Error("Invalid exchange");
+  if (e.lessons.some((lesson, index) =>
+    !lesson || !Number.isFinite(Date.parse(lesson.at)) ||
+    lesson.teacher !== (index === 0 ? "me" : e.personId) ||
+    typeof lesson.done !== "boolean" || typeof lesson.goal !== "string" || !lesson.goal.trim() ||
+    (lesson.goalStatus !== undefined && !["achieved", "needs-help"].includes(lesson.goalStatus)) ||
+    (lesson.reflection !== undefined && typeof lesson.reflection !== "string") ||
+    (lesson.goalStatus === "needs-help" && !lesson.reflection?.trim()) ||
+    (lesson.artifact !== undefined && artifactUrl(lesson.artifact) !== lesson.artifact)) ||
+    e.messages.some(message => !message || !["me", "partner"].includes(message.by) ||
+      typeof message.text !== "string" || !Number.isFinite(Date.parse(message.at))))
+    throw Error("Invalid lesson");
+  const done = e.lessons.filter(lesson => lesson.done).length;
+  const validCounts = { pending: [0], scheduled: [0], declined: [0], learning: [1], rescheduling: [1], review: [2], completed: [2], cancelled: [0, 1] };
+  if (!validCounts[e.status].includes(done) || (e.lessons[1].done && !e.lessons[0].done) ||
+    (e.status === "cancelled" && done === 1 && e.resolution !== "mutual-end") ||
+    Boolean(e.review) !== (e.status === "completed"))
+    throw Error("Inconsistent exchange status");
+  if (e.review && (!Array.isArray(e.review.tags) ||
+    e.review.tags.some(tag => !["讲解清楚", "耐心友好", "目标达成"].includes(tag)) ||
+    (e.review.tags.includes("目标达成") && e.lessons.some(lesson => lesson.goalStatus === "needs-help")) ||
+    typeof e.review.text !== "string" || !Number.isInteger(e.review.rating) ||
+    e.review.rating < 1 || e.review.rating > 5))
+    throw Error("Invalid review");
+}
+
 export function saveState(storage, state) {
   try {
     storage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -218,7 +230,7 @@ export function partnerAction(state, person) {
   const existing = state.exchanges.find(exchange => exchange.personId === person.id && Object.hasOwn(labels, exchange.status));
   if (existing) return { path: `/exchange/${existing.id}`, label: labels[existing.status] };
   return match(state.me, person).eligible
-    ? { path: `/invite/${person.id}`, label: "发起交换" }
+    ? { path: `/invite/${person.id}`, label: readInviteDraft(state, person) ? "继续填写邀请" : "发起交换" }
     : { path: `/publish?return=${person.id}`, label: "调整供需后交换" };
 }
 export function validatePost(p) {
@@ -377,16 +389,23 @@ export function rescheduleExchange(state, exchange, times, now = new Date()) {
   if (!exchangeActions(exchange).reschedule)
     throw Error("当前交换不能改期。");
   const remaining = exchange.lessons.filter((l) => !l.done);
-  if (!Array.isArray(times) || times.length !== remaining.length || times.some((t) =>
-    !Number.isFinite(Date.parse(t)) || new Date(t) <= now || new Date(t) > new Date(now.getTime() + 14 * 86400000)))
-    throw Error("请选择未来14天内的课程时间。");
+  if (!Array.isArray(times) || times.length !== remaining.length)
+    throw invitationError("请选择未来14天内的课程时间。", "time1");
+  times.forEach((time, index) => {
+    if (!Number.isFinite(Date.parse(time)) || new Date(time) <= now || new Date(time) > new Date(now.getTime() + 14 * 86400000))
+      throw invitationError("请选择未来14天内的课程时间。", `time${index + 1}`);
+  });
   let index = 0;
   const proposed = exchange.lessons.map((l) => l.done ? l.at : times[index++]);
   if (remaining.length === 2 && (overlaps(proposed[0], proposed[1]) || new Date(proposed[1]) < new Date(proposed[0])))
-    throw Error("两节课需按顺序安排，且相隔至少45分钟。");
-  const conflict = state.exchanges.filter((e) => e.id !== exchange.id && isOpenExchange(e) && e.status !== "rescheduling")
-    .some((e) => e.lessons.some((l) => !l.done && times.some((t) => overlaps(t, l.at))));
-  if (conflict) throw Error("这个时间已有其他交换安排，请换一个时段。");
+    throw invitationError("两节课需按顺序安排，且相隔至少45分钟。", "time2");
+  const otherReservations = state.exchanges
+    .filter(e => e.id !== exchange.id && isOpenExchange(e) && e.status !== "rescheduling")
+    .flatMap(e => e.lessons.filter(lesson => !lesson.done));
+  times.forEach((time, index) => {
+    if (otherReservations.some(lesson => overlaps(time, lesson.at)))
+      throw invitationError("这个时间已有其他交换安排，请换一个时段。", `time${index + 1}`);
+  });
   const awaitingResponse = exchange.status === "pending";
   remaining.forEach((l, i) => { l.at = times[i]; });
   exchange.status = awaitingResponse ? "pending" : exchange.lessons.some((l) => l.done) ? "learning" : "scheduled";
