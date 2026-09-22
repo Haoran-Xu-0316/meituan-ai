@@ -451,6 +451,19 @@ main {
 .category:hover {
   box-shadow: inset 0 0 0 1px #bfc0c8;
 }
+.filter-summary {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  white-space: nowrap;
+}
+.reset-filters { min-height: 44px; padding: 8px 4px; font-size: 12px; }
+.draft-status { margin: 20px 0 0; }
+@media (max-width: 650px) {
+  .filter-summary { gap: 0; flex-direction: column; align-items: flex-end; font-size: 11px; }
+}
 .filter-line {
   display: flex;
   justify-content: space-between;
