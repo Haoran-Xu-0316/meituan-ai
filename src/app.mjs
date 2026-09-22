@@ -14,6 +14,8 @@ import {
 import {
   loadState,
   saveState,
+  saveInviteDraft,
+  readInviteDraft,
   match,
   matches,
   partnerAction,
@@ -28,7 +30,7 @@ import {
   STATUS,
   availableLessonTimes,
   beijingDate,
-} from "./model.mjs?v=continuity-14";
+} from "./model.mjs?v=drafts-15";
 const paths = {
   discover: "M3 10l9-7 9 7v10a1 1 0 01-1 1h-5v-7H9v7H4a1 1 0 01-1-1z",
   match: "M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4",
@@ -409,7 +411,10 @@ function discover() {
             />只看双向匹配</label
           >
         </div>
-        <span class="subtle">${people.length}位技能伙伴</span>
+        <div class="filter-summary"><span class="subtle">${people.length}位技能伙伴</span>
+          ${filter.q || filter.category !== "全部" || filter.format || filter.slot || filter.mutual
+            ? '<button class="text-btn reset-filters" data-action="reset-filters">重置筛选</button>' : ""}
+        </div>
       </div>
       ${filter.q
         ? /* HTML */ `<div class="search-result">
@@ -712,6 +717,14 @@ function invite(p) {
   const now = new Date();
   const min = local(new Date(now.getTime() + 60000).toISOString()),
     max = local(new Date(now.getTime() + 14 * 86400000).toISOString());
+  const saved = readInviteDraft(state, p);
+  const values = saved || {
+    teach: m.teach[0], learn: m.learn[0], format: m.formats[0],
+    teachGoal: m.teach[0] === state.me.teach[0] ? state.me.goal : "",
+    learnGoal: m.learn[0] === p.teach[0] ? p.goal : "",
+    time1: local(t1), time2: local(t2),
+    note: "你好，想按上述目标互相分享，两次交流各45分钟。期待你的确认！",
+  };
   return /* HTML */ `<div class="form-page">
     ${back()}
     <div class="page-heading">
@@ -723,23 +736,23 @@ function invite(p) {
     <form id="invite-form" data-person="${p.id}" class="panel form-panel">
       <div class="form-error" role="alert"></div>
       <div class="form-two">
-        ${field("我来教", select("teach", m.teach, m.teach[0]))}${field(
+        ${field("我来教", select("teach", m.teach, values.teach))}${field(
           "我来学",
-          select("learn", m.learn, m.learn[0]),
+          select("learn", m.learn, values.learn),
         )}
       </div>
       <div class="form-two">
-        ${field("这节课我能教会什么", `<textarea name="teachGoal" required maxlength="200" placeholder="围绕上面选择的技能，约定一个具体成果">${escape(m.teach[0] === state.me.teach[0] ? state.me.goal : "")}</textarea>`)}
-        ${field("这节课希望TA教会什么", `<textarea name="learnGoal" required maxlength="200" placeholder="向伙伴提出本次希望完成的成果">${escape(m.learn[0] === p.teach[0] ? p.goal : "")}</textarea>`)}
+        ${field("这节课我能教会什么", `<textarea name="teachGoal" required maxlength="200" placeholder="围绕上面选择的技能，约定一个具体成果">${escape(values.teachGoal)}</textarea>`)}
+        ${field("这节课希望TA教会什么", `<textarea name="learnGoal" required maxlength="200" placeholder="向伙伴提出本次希望完成的成果">${escape(values.learnGoal)}</textarea>`)}
       </div>
       <p class="subtle">这是本次交换的具体目标，随邀请一起确认；修改个人资料不会改变已有约定。</p>
       <h2>安排两次45分钟的交流</h2>
       <p class="subtle">
-        北京时间，选择未来14天内的时间。${m.slots.length
+        北京时间，选择未来14天内的时间。${saved ? "已恢复草稿时间，请确认仍然合适。" : m.slots.length
           ? "已优先填入双方共同可用时段，并避开已有交换。"
           : "暂无共同空闲，以下空闲时间作为待协商提议。"}
       </p>
-      ${preferred.length < 2 ? '<p class="notice">常用时段中不足两次空闲，请手动选择其他时间，与伙伴协商后再约定。</p>' : ""}
+      ${!saved && preferred.length < 2 ? '<p class="notice">常用时段中不足两次空闲，请手动选择其他时间，与伙伴协商后再约定。</p>' : ""}
       <div class="form-two">
         ${field(
           "第一节：我来教",
@@ -749,7 +762,7 @@ function invite(p) {
             required
             min="${min}"
             max="${max}"
-            value="${local(t1)}"
+            value="${escape(values.time1)}"
           />`,
         )}${field(
           "第二节：TA来教",
@@ -759,19 +772,19 @@ function invite(p) {
             required
             min="${min}"
             max="${max}"
-            value="${local(t2)}"
+            value="${escape(values.time2)}"
           />`,
         )}
       </div>
-      ${field("教学形式", select("format", m.formats, m.formats[0]))}${field(
+      ${field("教学形式", select("format", m.formats, values.format))}${field(
         "给伙伴的一句话",
-        /* HTML */ `<textarea name="note" required maxlength="300">
-你好，想按上述目标互相分享，两次交流各45分钟。期待你的确认！</textarea
+        /* HTML */ `<textarea name="note" required maxlength="300">${escape(values.note)}</textarea
         >`,
       )}
       <div class="notice">
         ${icon("info")}这是本地演示邀请，不会发送给真实用户。
       </div>
+      <p class="draft-status subtle" id="invite-draft-status" role="status">${saved ? "已恢复本机草稿，尚未发送" : "填写内容会自动保存为本机草稿"}</p>
       <div class="form-actions">
         <a class="btn secondary" href="#/person/${p.id}">再看看</a
         ><button class="btn primary">发送交换邀请${icon("arrow")}</button>
@@ -1197,6 +1210,14 @@ function captureDraft(form) {
   state.draftStep = step;
   persist();
 }
+function captureInviteDraft(form) {
+  const person = PEOPLE.find(p => p.id === form.dataset.person);
+  if (!person || !saveInviteDraft(state, person, Object.fromEntries(new FormData(form)))) return;
+  const saved = persist();
+  const status = form.querySelector("#invite-draft-status");
+  const message = saved ? "草稿已保存在本机，尚未发送" : "草稿暂未保存，请勿关闭此页";
+  if (status && status.textContent !== message) status.textContent = message;
+}
 function clearFormError(form) {
   form.querySelectorAll(".field-error").forEach((node) => node.remove());
   form.querySelectorAll("[aria-invalid]").forEach((node) => {
@@ -1223,7 +1244,7 @@ function formError(form, error) {
     [/取消原因/, "reason"],
     [/收获|评分/, "text"],
   ];
-  const name = rules.find(([pattern]) => pattern.test(message))?.[1];
+  const name = error.field || rules.find(([pattern]) => pattern.test(message))?.[1];
   const input = name ? form.querySelector(`[name="${name}"]`) : null;
   const region = form.querySelector(".form-error");
   if (region) region.textContent = message;
@@ -1301,6 +1322,13 @@ document.addEventListener("click", (ev) => {
     } else if (a === "category") {
       filter.category = button.dataset.value;
       render();
+    } else if (a === "reset-filters") {
+      filter = { q: "", category: "全部", format: "", slot: "", mutual: false };
+      render(() => {
+        const heading = document.querySelector("#discover-title");
+        heading?.setAttribute("tabindex", "-1");
+        heading?.focus({ preventScroll: true });
+      });
     } else if (a === "clear-search") {
       filter.q = "";
       render();
@@ -1406,6 +1434,7 @@ document.addEventListener("change", (ev) => {
     goal.value = "";
     goal.placeholder = `请确认本次${t.value}课程要完成的具体成果`;
   }
+  if (t.closest("#invite-form")) captureInviteDraft(t.form);
   if (t.id === "format-filter") {
     filter.format = t.value;
     render();
@@ -1420,6 +1449,8 @@ document.addEventListener("change", (ev) => {
   }
 });
 document.addEventListener("input", (ev) => {
+  if (ev.target.closest("#invite-form") && ev.target.tagName !== "SELECT")
+    captureInviteDraft(ev.target.closest("form"));
   if (ev.target.closest("#publish-form"))
     captureDraft(ev.target.closest("form"));
 });
@@ -1471,6 +1502,7 @@ document.addEventListener("submit", (ev) => {
         toast("技能已发布，看看谁和你互相需要");
       }
     } else if (form.id === "invite-form") {
+      captureInviteDraft(form);
       const p = PEOPLE.find((p) => p.id === form.dataset.person);
       const e = createExchange(state, p, {
         teach: f.get("teach"),
@@ -1480,7 +1512,7 @@ document.addEventListener("submit", (ev) => {
         teachGoal: f.get("teachGoal"),
         learnGoal: f.get("learnGoal"),
         times: [f.get("time1"), f.get("time2")].map((t) =>
-          new Date(`${t}:00+08:00`).toISOString(),
+          `${t}:00+08:00`,
         ),
       });
       persist();
