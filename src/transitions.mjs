@@ -6,7 +6,9 @@ const groups = [
   ['status', '.segmented', '.selected'],
 ];
 const easing = 'cubic-bezier(.22,1,.32,1)';
-const reduced = () => document.documentElement.dataset.motion === 'off';
+const motionPreference = doc => doc.defaultView?.matchMedia?.('(prefers-reduced-motion: reduce)')
+  || globalThis.matchMedia?.('(prefers-reduced-motion: reduce)');
+const reduced = (doc = document) => doc.documentElement.dataset.motion === 'off' || Boolean(motionPreference(doc)?.matches);
 const keyOf = element => element?.getAttribute('href') || element?.dataset.value;
 const boxOf = element => {
   const { left, top, width, height } = element.getBoundingClientRect();
@@ -70,18 +72,29 @@ export function mountTransitions(root, snapshot = { groups: {} }) {
     group.append(indicator);
     group.classList.add('liquid-group');
     const target = place(group, selected, indicator);
+    let selectionAnimation;
     if (previous && previous.key !== keyOf(selected)) {
       const frames = liquidFrames(previous.box, target);
-      if (frames) animate(indicator, frames);
+      if (frames) selectionAnimation = animate(indicator, frames);
     }
-    surfaces.push(() => place(group, selected, indicator));
+    let lastTarget = target;
+    surfaces.push({ group, selected, update() {
+      const nextTarget = place(group, selected, indicator);
+      // A resized target invalidates the old FLIP transform. Settle directly at
+      // the new geometry instead of stretching a moving highlight twice.
+      if (Object.keys(nextTarget).some(key => Math.abs(nextTarget[key] - lastTarget[key]) > .5)) {
+        selectionAnimation?.cancel();
+        selectionAnimation = null;
+      }
+      lastTarget = nextTarget;
+    } });
   }
   let resizeObserver;
   if (typeof ResizeObserver !== 'undefined') {
-    resizeObserver = new ResizeObserver(() => surfaces.forEach(place => place()));
-    for (const [, selector] of groups) {
-      const group = root.querySelector(selector);
-      if (group) resizeObserver.observe(group);
+    resizeObserver = new ResizeObserver(() => surfaces.forEach(surface => surface.update()));
+    for (const { group, selected } of surfaces) {
+      resizeObserver.observe(group);
+      resizeObserver.observe(selected);
     }
   }
   const main = root.querySelector('main');
@@ -121,7 +134,7 @@ export function mountTransitions(root, snapshot = { groups: {} }) {
     animations.forEach(animation => animation.cancel());
   };
   root.addEventListener('change', () => { if (reduced()) stop(); }, { signal: controller.signal });
-  const media = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
+  const media = motionPreference(document);
   media?.addEventListener('change', () => { if (media.matches) stop(); }, { signal: controller.signal });
   return () => {
     controller.abort();
@@ -133,10 +146,11 @@ export function mountTransitions(root, snapshot = { groups: {} }) {
 // Capture both UI states so existing cards move, departing content exits,
 // and the browser interpolates panel geometry instead of replacing it abruptly.
 export function createSceneRenderer(doc, paint) {
-  let active, revision = 0;
+  let active, revision = 0, disposePreference = () => {};
   return (afterPaint) => {
     const current = ++revision;
     const previousKey = doc.querySelector('main')?.dataset?.transitionKey;
+    disposePreference();
     active?.skipTransition();
     const update = () => {
       if (current !== revision) return;
@@ -151,16 +165,28 @@ export function createSceneRenderer(doc, paint) {
       doc.documentElement.dataset.sceneTransition = 'off';
       doc.documentElement.dataset.scenePhase = 'idle';
       active = null;
+      disposePreference();
     };
-    if (!doc.startViewTransition || !doc.querySelector('main') || doc.documentElement.dataset.motion === 'off') {
+    if (!doc.startViewTransition || !doc.querySelector('main') || reduced(doc)) {
       finish(); update(); return;
     }
     doc.documentElement.dataset.sceneTransition = 'on';
     doc.documentElement.dataset.scenePhase = 'capturing';
     try {
       active = doc.startViewTransition(update);
+      const media = motionPreference(doc);
+      const onPreferenceChange = () => {
+        if (!media.matches || current !== revision) return;
+        active?.skipTransition();
+        finish();
+      };
+      media?.addEventListener('change', onPreferenceChange);
+      disposePreference = () => {
+        media?.removeEventListener('change', onPreferenceChange);
+        disposePreference = () => {};
+      };
       active.ready.then(() => {
-        if (current === revision) doc.documentElement.dataset.scenePhase = 'animating';
+        if (current === revision && active) doc.documentElement.dataset.scenePhase = 'animating';
       }).catch(() => {});
       active.finished.then(finish, finish);
     } catch {
