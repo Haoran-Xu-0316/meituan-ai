@@ -46,6 +46,7 @@ export function loadState(storage) {
       throw Error();
     validatePost(s.me);
     validateSavedState(s);
+    if (Object.hasOwn(s, "inviteDrafts")) s.inviteDrafts = restoreInviteDrafts(s.inviteDrafts);
     if (s.draft) {
       const restored = restoreDraft(s.draft, s.me);
       if (!restored) {
@@ -63,6 +64,46 @@ export function loadState(storage) {
       warning: "本地数据不可读取，已恢复演示。新的操作将重新保存。",
     };
   }
+}
+// Invitation drafts are isolated by partner and never count as an exchange.
+const inviteDraftLimits = { teach: 40, learn: 40, format: 40, teachGoal: 200, learnGoal: 200, time1: 16, time2: 16, note: 300 };
+function validInviteDraft(raw) {
+  return raw && typeof raw === "object" && !Array.isArray(raw) &&
+    Object.entries(inviteDraftLimits).every(([key, limit]) =>
+      typeof raw[key] === "string" && raw[key].length <= limit) &&
+    [raw.time1, raw.time2].every(value => value === "" ||
+      (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value) && Number.isFinite(Date.parse(`${value}:00+08:00`))));
+}
+function restoreInviteDrafts(raw) {
+  const drafts = {};
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return drafts;
+  for (const p of PEOPLE) {
+    if (Object.hasOwn(raw, p.id) && validInviteDraft(raw[p.id]))
+      drafts[p.id] = Object.fromEntries(Object.keys(inviteDraftLimits).map(key => [key, raw[p.id][key]]));
+  }
+  return drafts;
+}
+export function saveInviteDraft(state, p, values) {
+  if (!PEOPLE.some(person => person.id === p.id) || !validInviteDraft(values)) return false;
+  state.inviteDrafts = restoreInviteDrafts(state.inviteDrafts);
+  state.inviteDrafts[p.id] = Object.fromEntries(Object.keys(inviteDraftLimits).map(key => [key, values[key]]));
+  return true;
+}
+export function readInviteDraft(state, p) {
+  const saved = state.inviteDrafts?.[p.id];
+  if (!validInviteDraft(saved)) return null;
+  const draft = { ...saved }, m = match(state.me, p);
+  for (const key of ["teach", "learn"]) {
+    if (!m[key].includes(draft[key])) {
+      draft[key] = m[key][0] || "";
+      draft[`${key}Goal`] = "";
+    }
+  }
+  if (!m.formats.includes(draft.format)) draft.format = m.formats[0] || "";
+  return draft;
+}
+function invitationError(message, field) {
+  return Object.assign(new Error(message), { field });
 }
 // Drafts can be incomplete; validate their shape without requiring a publishable post.
 function restoreDraft(raw, me) {
@@ -253,13 +294,11 @@ export function createExchange(state, p, input, now = new Date()) {
   const m = match(state.me, p);
   if (!m.eligible)
     throw Error("双方技能或教学形式尚未互补，请先调整发布内容。");
-  if (
-    !m.teach.includes(input.teach) ||
-    !m.learn.includes(input.learn) ||
-    !m.formats.includes(input.format)
-  )
-    throw Error("请选择双方可以交换的技能和教学形式。");
-  if (!input.note?.trim()) throw Error("请写一句邀请说明。");
+  for (const [field, options] of [["teach", m.teach], ["learn", m.learn], ["format", m.formats]]) {
+    if (!options.includes(input[field]))
+      throw invitationError("请选择双方可以交换的技能和教学形式。", field);
+  }
+  if (!input.note?.trim()) throw invitationError("请写一句邀请说明。", "note");
   if (
     state.exchanges.some(
       (e) =>
@@ -270,33 +309,31 @@ export function createExchange(state, p, input, now = new Date()) {
     )
   )
     throw Error("你们已有这组技能的有效邀请，请到我的交换查看。");
-  const times = input.times;
-  if (
-    !Array.isArray(times) ||
-    times.length !== 2 ||
-    times.some((t) => !Number.isFinite(Date.parse(t)) || new Date(t) <= now)
-  )
-    throw Error("请选择两个未来的课程时间。");
-  if (times.some((t) => new Date(t) > new Date(now.getTime() + 14 * 86400000)))
-    throw Error("请选择未来14天内的课程时间。");
-  if (overlaps(times[0], times[1])) throw Error("两节45分钟课程不能重叠。");
-  if (new Date(times[1]) < new Date(times[0])) throw Error("第二节课应安排在第一节课之后。");
-  if (
-    state.exchanges
-      .filter((e) => !["cancelled", "declined", "completed", "rescheduling"].includes(e.status))
-      .some((e) =>
-        e.lessons.some((l) => !l.done && times.some((t) => overlaps(t, l.at))),
-      )
-  )
-    throw Error("这个时间已有其他交换安排，请换一个时段。");
-  const lessonGoal = (value, fallback) => {
+  if (!Array.isArray(input.times) || input.times.length !== 2)
+    throw invitationError("请选择两个未来的课程时间。", "time1");
+  input.times.forEach((time, index) => {
+    if (!Number.isFinite(Date.parse(time)) || new Date(time) <= now)
+      throw invitationError("请选择两个未来的课程时间。", `time${index + 1}`);
+    if (new Date(time) > new Date(now.getTime() + 14 * 86400000))
+      throw invitationError("请选择未来14天内的课程时间。", `time${index + 1}`);
+  });
+  const times = input.times.map(time => new Date(time).toISOString());
+  if (overlaps(times[0], times[1])) throw invitationError("两节45分钟课程不能重叠。", "time2");
+  if (new Date(times[1]) < new Date(times[0])) throw invitationError("第二节课应安排在第一节课之后。", "time2");
+  times.forEach((time, index) => {
+    if (state.exchanges
+      .filter(e => !["cancelled", "declined", "completed", "rescheduling"].includes(e.status))
+      .some(e => e.lessons.some(lesson => !lesson.done && overlaps(time, lesson.at))))
+      throw invitationError("这个时间已有其他交换安排，请换一个时段。", `time${index + 1}`);
+  });
+  const lessonGoal = (value, fallback, field) => {
     const goal = value === undefined ? fallback : value;
     if (typeof goal !== "string" || !goal.trim() || goal.length > 200)
-      throw Error("请分别确认所选技能的课程目标，不超过200字。");
+      throw invitationError("请分别确认所选技能的课程目标，不超过200字。", field);
     return goal.trim();
   };
-  const teachGoal = lessonGoal(input.teachGoal, input.teach === state.me.teach[0] ? state.me.goal : "");
-  const learnGoal = lessonGoal(input.learnGoal, input.learn === p.teach[0] ? p.goal : "");
+  const teachGoal = lessonGoal(input.teachGoal, input.teach === state.me.teach[0] ? state.me.goal : "", "teachGoal");
+  const learnGoal = lessonGoal(input.learnGoal, input.learn === p.teach[0] ? p.goal : "", "learnGoal");
   const id = globalThis.crypto?.randomUUID?.() ?? `exchange-${now.getTime()}`;
   const e = {
     id,
@@ -322,6 +359,7 @@ export function createExchange(state, p, input, now = new Date()) {
     review: null,
   };
   state.exchanges.unshift(e);
+  if (state.inviteDrafts) delete state.inviteDrafts[p.id];
   return e;
 }
 // Only explicit web URLs can become clickable learning artifacts.
